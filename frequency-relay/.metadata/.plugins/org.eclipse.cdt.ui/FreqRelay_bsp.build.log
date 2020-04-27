@@ -1,0 +1,6 @@
+10:20:36 **** Clean-only build of configuration Nios II for project FreqRelay_bsp ****
+wsl make clean 
+[BSP clean complete]
+
+10:20:36 Build Finished (took 240ms)
+
