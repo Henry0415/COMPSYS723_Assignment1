@@ -1,0 +1,4 @@
+*
+!software/freeRTOS_A1/*.c
+!.gitignore
+!software/freeRTOS_A1/readme.txt
