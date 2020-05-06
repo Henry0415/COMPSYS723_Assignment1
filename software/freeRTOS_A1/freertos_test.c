@@ -28,6 +28,14 @@ static void prvSecondRegTestTask(void *pvParameters);
 /*
  * Create the demo tasks then start the scheduler.
  */
+#define Flag_Raised 1
+#define Flag_Low 0
+
+int ThresholdValue[2];
+int flagStableElapse;
+int SwitchState[5];
+int MaintenatnceState;
+int LoadStates[5];
 
 //Frequency Analyser
 
@@ -39,9 +47,17 @@ void freq_relay(){
 	//Send to Queue
 }
 
+void push_buttonISR(){
+	if(MaintenanceState = Flag_Raised){
+		MaintenanceState = Flag_Low;
+	}else{
+		MaintenanceState = Flag_Raised;
+	}
+}
 int main(void)
 {
 	alt_irq_register(FREQUENCY_ANALYSER_IRQ, 0, freq_relay);
+	alt_irq_register(KEY_IRQ,0,push_buttonISR);
 	/* The RegTest tasks as described at the top of this file. */
 	xTaskCreate( prvFirstRegTestTask, "Rreg1", configMINIMAL_STACK_SIZE, mainREG_TEST_1_PARAMETER, mainREG_TEST_PRIORITY, NULL);
 	xTaskCreate( prvSecondRegTestTask, "Rreg2", configMINIMAL_STACK_SIZE, mainREG_TEST_2_PARAMETER, mainREG_TEST_PRIORITY, NULL);
