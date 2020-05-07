@@ -35,12 +35,19 @@ static void prvSecondRegTestTask(void *pvParameters);
 // Global Variables
 int ThresholdValue[2];
 int flagStableElapse;
-int SwitchState[5];
+int SwitchState;
 int MaintenanceState;
 int LoadStates[5];
 
 void * stabilityTimerHandle;
 void * reactionTimerHandle;
+
+QueueHandle_t KeyboardInputQ;
+QueueHandle_t FrequencyUpdateQ;
+QueueHandle_t MonitorOutputQ;
+QueueHandle_t TimerShedQ;
+QueueHandle_t ShedLoadQ;
+QueueHandle_t FreqStateQ;
 
 int switchValues;
 //Frequency Analyser
@@ -49,8 +56,9 @@ void freq_relay(){
 #define SAMPLING_FREQ 16000.0
 	double temp = SAMPLING_FREQ/(double)IORD(FREQUENCY_ANALYSER_BASE, 0);
 	//temp contains Freq value
-	printf("%f Hz\n", temp);
+	//printf("%f Hz\n", temp);
 	//Send to Queue
+	xQueueSendToBack(FrequencyUpdateQ,&temp,pdFALSE);
 }
 
 void push_buttonISR(){
@@ -65,11 +73,7 @@ void switchPolling ()
 {
 	// periodically poll switch states
 	switchValues = IORD(SLIDE_SWITCH_BASE,0);
-	SwitchState[0] = switchValues && "000000000000000001";
-	SwitchState[1] = switchValues && "000000000000000010";
-	SwitchState[2] = switchValues && "000000000000000100";
-	SwitchState[3] = switchValues && "000000000000001000";
-	SwitchState[4] = switchValues && "000000000000010000";
+	SwitchState = switchValues;
 }
 
 void UserInputHandler()
@@ -83,6 +87,15 @@ void Monitor_Frequency()
 {
 	//Calculates the Instantaneous Frequency
 	//Checks if the instantaneous frequency exceeds the threshold values. Calculate the value of the ROC.
+	double freq;
+	while (1){
+
+		if(xQueueReceive(FrequencyUpdateQ,&freq,portMAX_DELAY) == pdTRUE){
+			printf("%f Hz\n", freq);
+		}
+
+	}
+
 
 	//Start reaction timer.
 	xTimerStart(reactionTimerHandle,50);
@@ -122,10 +135,14 @@ int main(void)
 {
 	alt_irq_register(FREQUENCY_ANALYSER_IRQ, 0, freq_relay);
 	alt_irq_register(PUSH_BUTTON_IRQ,0,push_buttonISR);
+
+	/* Queue initialisation*/
+	FrequencyUpdateQ = xQueueCreate(100, sizeof(double));
 	/* The RegTest tasks as described at the top of this file. */
-	xTaskCreate( prvFirstRegTestTask, "Rreg1", configMINIMAL_STACK_SIZE, mainREG_TEST_1_PARAMETER, mainREG_TEST_PRIORITY, NULL);
-	xTaskCreate( prvSecondRegTestTask, "Rreg2", configMINIMAL_STACK_SIZE, mainREG_TEST_2_PARAMETER, mainREG_TEST_PRIORITY, NULL);
+	//xTaskCreate( prvFirstRegTestTask, "Rreg1", configMINIMAL_STACK_SIZE, mainREG_TEST_1_PARAMETER, mainREG_TEST_PRIORITY, NULL);
+	//xTaskCreate( prvSecondRegTestTask, "Rreg2", configMINIMAL_STACK_SIZE, mainREG_TEST_2_PARAMETER, mainREG_TEST_PRIORITY, NULL);
 	//create timers
+	xTaskCreate(Monitor_Frequency, "monfreq", configMINIMAL_STACK_SIZE,NULL,1,NULL);
 	stabilityTimerHandle = xTimerCreate("Stability Timer",pdMS_TO_TICKS(500),pdTRUE,(void *) 0,stableElapse);
 	reactionTimerHandle = xTimerCreate("Reaction Timer",pdMS_TO_TICKS(200),pdFALSE,(void *) 0,reactionElapse);
 
