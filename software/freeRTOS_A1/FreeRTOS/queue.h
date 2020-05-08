@@ -67,6 +67,7 @@
     1 tab == 4 spaces!
 */
 
+#include <stdint.h>
 
 #ifndef QUEUE_H
 #define QUEUE_H

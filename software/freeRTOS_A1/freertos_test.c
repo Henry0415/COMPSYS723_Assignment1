@@ -2,6 +2,7 @@
 #include <stddef.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdint.h>
 
 /*Freq Analyser include*/
 #include <unistd.h>
@@ -39,8 +40,10 @@ int SwitchState;
 int MaintenanceState;
 int LoadStates[5];
 
-void * stabilityTimerHandle;
-void * reactionTimerHandle;
+int switchValues;
+
+TimerHandle_t stabilityTimerHandle;
+TimerHandle_t reactionTimerHandle;
 
 QueueHandle_t KeyboardInputQ;
 QueueHandle_t FrequencyUpdateQ;
@@ -49,7 +52,6 @@ QueueHandle_t TimerShedQ;
 QueueHandle_t ShedLoadQ;
 QueueHandle_t FreqStateQ;
 
-int switchValues;
 //Frequency Analyser
 
 void freq_relay(){
@@ -58,7 +60,7 @@ void freq_relay(){
 	//temp contains Freq value
 	//printf("%f Hz\n", temp);
 	//Send to Queue
-	xQueueSendToBack(FrequencyUpdateQ,&temp,pdFALSE);
+	xQueueSendToBackFromISR(FrequencyUpdateQ,&temp,pdFALSE);
 }
 
 void push_buttonISR(){
@@ -138,6 +140,11 @@ int main(void)
 
 	/* Queue initialisation*/
 	FrequencyUpdateQ = xQueueCreate(100, sizeof(double));
+	KeyboardInputQ = xQueueCreate(100, sizeof(int));
+	MonitorOutputQ = xQueueCreate(100, sizeof(double));
+	TimerShedQ = xQueueCreate(100, sizeof(double));
+	ShedLoadQ = xQueueCreate(100, sizeof(int));
+	FreqStateQ = xQueueCreate(100, sizeof(int));
 	/* The RegTest tasks as described at the top of this file. */
 	//xTaskCreate( prvFirstRegTestTask, "Rreg1", configMINIMAL_STACK_SIZE, mainREG_TEST_1_PARAMETER, mainREG_TEST_PRIORITY, NULL);
 	//xTaskCreate( prvSecondRegTestTask, "Rreg2", configMINIMAL_STACK_SIZE, mainREG_TEST_2_PARAMETER, mainREG_TEST_PRIORITY, NULL);
