@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdint.h>
+#include <stdlib.h>
 
 /*Freq Analyser include*/
 #include <unistd.h>
@@ -24,8 +25,6 @@
 #define mainREG_TEST_2_PARAMETER    ( ( void * ) 0x87654321 )
 #define mainREG_TEST_PRIORITY       ( tskIDLE_PRIORITY + 1)
 #define SAMPLING_FREQ 16000.0
-static void prvFirstRegTestTask(void *pvParameters);
-static void prvSecondRegTestTask(void *pvParameters);
 
 
 /*
@@ -35,8 +34,18 @@ static void prvSecondRegTestTask(void *pvParameters);
 #define Flag_Raised 1
 #define Flag_Low 0
 
+struct thresholdval{
+	double freq;
+	double roc;
+};
+
+struct monitor_package{
+	double cur_freq;
+	double roc;
+};
 // Global Variables
-int ThresholdValue[2];
+struct thresholdval ThresholdValue;
+
 int flagStableElapse;
 int SwitchState;
 int MaintenanceState;
@@ -44,10 +53,8 @@ int LoadStates[5];
 
 int switchValues;
 
-struct monitor_package{
-	double cur_freq;
-	double roc;
-};
+
+
 
 TimerHandle_t stabilityTimerHandle;
 TimerHandle_t reactionTimerHandle;
@@ -107,6 +114,7 @@ void Monitor_Frequency()
 	double prev_freq = 0;
 	double roc;
 	struct monitor_package qbody;
+	int unstable = 0;
 	while (1){
 
 		if(xQueueReceive(FrequencyUpdateQ,&period,portMAX_DELAY) == pdTRUE){
@@ -115,13 +123,22 @@ void Monitor_Frequency()
 				prev_freq = freq;
 			}
 			//calculate ROC
-			roc = (freq - prev_freq)/period;
+			roc = abs((freq - prev_freq)/period);
 
 			qbody.cur_freq = freq;
 			qbody.roc = roc;
 			xQueueSendToBack(MonitorOutputQ,&qbody,pdFALSE);
 
 			xSemaphoreTake(ThresholdValueSem, portMAX_DELAY);
+			//block until semaphore obtained can cause deadlock
+			if(freq < ThresholdValue.freq || roc > ThresholdValue.roc){
+				unstable = 1;
+			}else{
+				unstable = 0;
+			}
+			//Gives Semaphore before blocking function
+			xSemaphoreGive(ThresholdValueSem);
+			xQueueSendToBack(FreqStateQ,&unstable,pdFALSE);
 		}
 
 	}
