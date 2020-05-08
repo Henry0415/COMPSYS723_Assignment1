@@ -22,6 +22,7 @@
 #define mainREG_TEST_1_PARAMETER    ( ( void * ) 0x12345678 )
 #define mainREG_TEST_2_PARAMETER    ( ( void * ) 0x87654321 )
 #define mainREG_TEST_PRIORITY       ( tskIDLE_PRIORITY + 1)
+#define SAMPLING_FREQ 16000.0
 static void prvFirstRegTestTask(void *pvParameters);
 static void prvSecondRegTestTask(void *pvParameters);
 
@@ -42,6 +43,11 @@ int LoadStates[5];
 
 int switchValues;
 
+struct monitor_package{
+	double cur_freq;
+	double roc;
+};
+
 TimerHandle_t stabilityTimerHandle;
 TimerHandle_t reactionTimerHandle;
 
@@ -55,8 +61,8 @@ QueueHandle_t FreqStateQ;
 //Frequency Analyser
 
 void freq_relay(){
-#define SAMPLING_FREQ 16000.0
-	double temp = SAMPLING_FREQ/(double)IORD(FREQUENCY_ANALYSER_BASE, 0);
+
+	double temp =  (double)IORD(FREQUENCY_ANALYSER_BASE, 0);
 	//temp contains Freq value
 	//printf("%f Hz\n", temp);
 	//Send to Queue
@@ -89,11 +95,24 @@ void Monitor_Frequency()
 {
 	//Calculates the Instantaneous Frequency
 	//Checks if the instantaneous frequency exceeds the threshold values. Calculate the value of the ROC.
+	double period;
 	double freq;
+	double prev_freq = 0;
+	double roc;
+	struct monitor_package qbody;
 	while (1){
 
-		if(xQueueReceive(FrequencyUpdateQ,&freq,portMAX_DELAY) == pdTRUE){
-			printf("%f Hz\n", freq);
+		if(xQueueReceive(FrequencyUpdateQ,&period,portMAX_DELAY) == pdTRUE){
+			freq = SAMPLING_FREQ/period;
+			if(prev_freq == 0){
+				prev_freq = freq;
+			}
+			//calculate ROC
+			roc = (freq - prev_freq)/period;
+
+			qbody.cur_freq = freq;
+			qbody.roc = roc;
+			xQueueSendToBack(MonitorOutputQ,&qbody,pdFALSE);
 		}
 
 	}
@@ -130,6 +149,13 @@ void reactionElapse(reactionTimerHandle)
 void Output_Load()
 {
 	//Outputs status of controller and loads, to LEDs, sends snapshot to UART
+	struct monitor_package freq_pack;
+	while(1){
+		if(xQueueReceive(MonitorOutputQ,&freq_pack,portMAX_DELAY) == pdTRUE){
+			printf("freq: %f\n",freq_pack.cur_freq);
+			printf("roc: %f\n",freq_pack.roc);
+		}
+	}
 
 }
 
@@ -141,7 +167,7 @@ int main(void)
 	/* Queue initialisation*/
 	FrequencyUpdateQ = xQueueCreate(100, sizeof(double));
 	KeyboardInputQ = xQueueCreate(100, sizeof(int));
-	MonitorOutputQ = xQueueCreate(100, sizeof(double));
+	MonitorOutputQ = xQueueCreate(100, sizeof(struct monitor_package));
 	TimerShedQ = xQueueCreate(100, sizeof(double));
 	ShedLoadQ = xQueueCreate(100, sizeof(int));
 	FreqStateQ = xQueueCreate(100, sizeof(int));
@@ -149,7 +175,8 @@ int main(void)
 	//xTaskCreate( prvFirstRegTestTask, "Rreg1", configMINIMAL_STACK_SIZE, mainREG_TEST_1_PARAMETER, mainREG_TEST_PRIORITY, NULL);
 	//xTaskCreate( prvSecondRegTestTask, "Rreg2", configMINIMAL_STACK_SIZE, mainREG_TEST_2_PARAMETER, mainREG_TEST_PRIORITY, NULL);
 	//create timers
-	xTaskCreate(Monitor_Frequency, "monfreq", configMINIMAL_STACK_SIZE,NULL,1,NULL);
+	xTaskCreate(Monitor_Frequency, "monfreq", configMINIMAL_STACK_SIZE,NULL,4,NULL);
+	xTaskCreate(Output_Load(),"out_load",configMINIMAL_STACK_SIZE,NULL,2,NULL);
 	stabilityTimerHandle = xTimerCreate("Stability Timer",pdMS_TO_TICKS(500),pdTRUE,(void *) 0,stableElapse);
 	reactionTimerHandle = xTimerCreate("Reaction Timer",pdMS_TO_TICKS(200),pdFALSE,(void *) 0,reactionElapse);
 
@@ -159,22 +186,5 @@ int main(void)
 	/* Will only reach here if there is insufficient heap available to start
 	 the scheduler. */
 	for (;;);
-}
-static void prvFirstRegTestTask(void *pvParameters)
-{
-	while (1)
-	{
-		//printf("Task 1\n");
-		vTaskDelay(1000);
-	}
-
-}
-static void prvSecondRegTestTask(void *pvParameters)
-{
-	while (1)
-	{
-		//printf("Task 2\n");
-		vTaskDelay(1000);
-	}
 }
 
