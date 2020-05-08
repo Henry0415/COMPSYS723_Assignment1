@@ -16,6 +16,7 @@
 #include "freertos/task.h"
 #include "freertos/queue.h"
 #include "freertos/timers.h"
+#include "freertos/semphr.h"
 
 /* The parameters passed to the reg test tasks.  This is just done to check
  the parameter passing mechanism is working correctly. */
@@ -57,6 +58,12 @@ QueueHandle_t MonitorOutputQ;
 QueueHandle_t TimerShedQ;
 QueueHandle_t ShedLoadQ;
 QueueHandle_t FreqStateQ;
+
+SemaphoreHandle_t ThresholdValueSem;
+SemaphoreHandle_t FlagStableElapseSem;
+SemaphoreHandle_t SwitchStatesSem;
+SemaphoreHandle_t MaintenanceStateSem;
+SemaphoreHandle_t LoadStateSem;
 
 //Frequency Analyser
 
@@ -113,6 +120,8 @@ void Monitor_Frequency()
 			qbody.cur_freq = freq;
 			qbody.roc = roc;
 			xQueueSendToBack(MonitorOutputQ,&qbody,pdFALSE);
+
+			xSemaphoreTake(ThresholdValueSem, portMAX_DELAY);
 		}
 
 	}
@@ -171,6 +180,13 @@ int main(void)
 	TimerShedQ = xQueueCreate(100, sizeof(double));
 	ShedLoadQ = xQueueCreate(100, sizeof(int));
 	FreqStateQ = xQueueCreate(100, sizeof(int));
+
+	ThresholdValueSem = xSemaphoreCreateBinary();
+	FlagStableElapseSem = xSemaphoreCreateBinary();
+	SwitchStatesSem = xSemaphoreCreateBinary();
+	MaintenanceStateSem = xSemaphoreCreateBinary();
+	LoadStateSem = xSemaphoreCreateBinary();
+
 	/* The RegTest tasks as described at the top of this file. */
 	//xTaskCreate( prvFirstRegTestTask, "Rreg1", configMINIMAL_STACK_SIZE, mainREG_TEST_1_PARAMETER, mainREG_TEST_PRIORITY, NULL);
 	//xTaskCreate( prvSecondRegTestTask, "Rreg2", configMINIMAL_STACK_SIZE, mainREG_TEST_2_PARAMETER, mainREG_TEST_PRIORITY, NULL);
