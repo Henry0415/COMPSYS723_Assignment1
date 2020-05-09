@@ -48,7 +48,7 @@ struct monitor_package{
 struct thresholdval ThresholdValue;
 
 int flagStableElapse;
-int SwitchState;
+int SwitchState[5];
 int MaintenanceState;
 int LoadStates[5];
 
@@ -163,13 +163,15 @@ void stableElapse(stabilityTimerHandle)
 void Load_Controller ()
 {
 	int curloadstates;
-	int curswstates;
+	int curswstates[5];
 	int MFlag;
 	int loadManaging = 0;
 	int curnetstate = 0;
 	int newnetstate;
 	int	stablelapse = 1;
-	int Output_LoadStates;
+	int Output_LoadStates[5];
+	int switc
+	int target_load;
 	//Changes the load as requested
 	//Checks the state of the switches and MaintenanceState flag before changing the load.
 	while(1){
@@ -200,7 +202,10 @@ void Load_Controller ()
 					if(stablelapse == FLAG_HIGH){
 						//timerlapsed
 						if(curnetstate == FLAG_LOW){
-							//stable
+							//stable - add new load
+							for(int x = 4;x>=0;x--){
+
+							}
 						}else{
 							//unstable - shed
 						}
