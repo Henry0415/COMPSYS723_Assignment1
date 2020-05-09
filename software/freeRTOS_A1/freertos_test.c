@@ -31,8 +31,8 @@
  * Create the demo tasks then start the scheduler.
  */
 // Macros
-#define Flag_Raised 1
-#define Flag_Low 0
+#define FLAG_HIGH 1
+#define FLAG_LOW 0
 
 struct thresholdval{
 	double freq;
@@ -81,13 +81,14 @@ void freq_relay(){
 	//printf("%f Hz\n", temp);
 	//Send to Queue
 	xQueueSendToBackFromISR(FrequencyUpdateQ,&temp,pdFALSE);
+	xTaskNotifyGive(4);
 }
 
 void push_buttonISR(){
-	if(MaintenanceState == Flag_Raised){
-		MaintenanceState = Flag_Low;
+	if(MaintenanceState == FLAG_HIGH){
+		MaintenanceState = FLAG_LOW;
 	}else{
-		MaintenanceState = Flag_Raised;
+		MaintenanceState = FLAG_HIGH;
 	}
 }
 
@@ -115,6 +116,7 @@ void Monitor_Frequency()
 	double roc;
 	struct monitor_package qbody;
 	int unstable = 0;
+	struct thresholdvalue tv;
 	while (1){
 
 		if(xQueueReceive(FrequencyUpdateQ,&period,portMAX_DELAY) == pdTRUE){
@@ -130,22 +132,25 @@ void Monitor_Frequency()
 			xQueueSendToBack(MonitorOutputQ,&qbody,pdFALSE);
 
 			xSemaphoreTake(ThresholdValueSem, portMAX_DELAY);
+			tv = ThresholdValue;
+			xSemaphoreGive(ThresholdValueSem);
 			//block until semaphore obtained can cause deadlock
-			if(freq < ThresholdValue.freq || roc > ThresholdValue.roc){
+			if(freq < tv.freq || roc > tv.roc){
 				unstable = 1;
+				//Start reaction timer.
+				xTimerStart(reactionTimerHandle,50);
 			}else{
 				unstable = 0;
 			}
 			//Gives Semaphore before blocking function
-			xSemaphoreGive(ThresholdValueSem);
+
 			xQueueSendToBack(FreqStateQ,&unstable,pdFALSE);
 		}
-
+		ulTaskNotifyTake(pdTRUE,portMAX_DELAY)
 	}
 
 
-	//Start reaction timer.
-	xTimerStart(reactionTimerHandle,50);
+
 
 }
 
@@ -157,13 +162,55 @@ void stableElapse(stabilityTimerHandle)
 
 void Load_Controller ()
 {
+	int curloadstates;
+	int curswstates;
+	int MFlag;
+	int loadManaging = 0;
+	int curnetstate = 0;
+	int newnetstate;
+	int	stablelapse = 1;
+	int Output_LoadStates;
 	//Changes the load as requested
 	//Checks the state of the switches and MaintenanceState flag before changing the load.
+	while(1){
 
-	//Starts stability timer on network state change.
-	xTimerStart(stabilityTimerHandle,50);
+		xSemaphoreTake(SwitchStatesSem,portMAX_DELAY);
+		curswstates = SwitchState;
+		xSemaphoreGive(SwitchStatesSem);
+
+		xSemaphoreTake(MaintenanceStateSem,portMAX_DELAY);
+		MFlag = MaintenanceState;
+		xSemaphoreGive(MaintenanceStateSem);
+
+		if(MaintenanceState == FLAG_HIGH){
+			xSemaphoreTake(LoadStateSem,portMAX_DELAY);
+			LoadStates = curswstates;
+			curloadstates = LoadStates;
+			xSemaphoreGive(LoadStateSem);
+		}else{
+			if(xQueueReceive(FreqStateQ,&newnetstate,portMAX_DELAY) == pdTRUE){
+				if(curnetstate != newnetstate){
+					//Starts stability timer on network state change.
+					xTimerStart(stabilityTimerHandle,50);
+				}else{
+					if(stablelapse == FLAG_HIGH){
+						//timerlapsed
+						if(curnetstate == FLAG_LOW){
+							//stable
+						}else{
+							//unstable - shed
+						}
+					}else{
+
+					}
+				}
+			}
+		}
+
+
 	//Stops reaction timer.
-	xTimerStop(reactionTimerHandle,50);
+		xTimerStop(reactionTimerHandle,50);
+	}
 }
 
 void reactionElapse(reactionTimerHandle)
@@ -208,8 +255,8 @@ int main(void)
 	//xTaskCreate( prvFirstRegTestTask, "Rreg1", configMINIMAL_STACK_SIZE, mainREG_TEST_1_PARAMETER, mainREG_TEST_PRIORITY, NULL);
 	//xTaskCreate( prvSecondRegTestTask, "Rreg2", configMINIMAL_STACK_SIZE, mainREG_TEST_2_PARAMETER, mainREG_TEST_PRIORITY, NULL);
 	//create timers
-	xTaskCreate(Monitor_Frequency, "monfreq", configMINIMAL_STACK_SIZE,NULL,4,NULL);
-	xTaskCreate(Output_Load(),"out_load",configMINIMAL_STACK_SIZE,NULL,2,NULL);
+	xTaskCreate(Monitor_Frequency, "monfreq", configMINIMAL_STACK_SIZE,NULL,4,4);
+	xTaskCreate(Output_Load,"out_load",configMINIMAL_STACK_SIZE,NULL,2,2);
 	stabilityTimerHandle = xTimerCreate("Stability Timer",pdMS_TO_TICKS(500),pdTRUE,(void *) 0,stableElapse);
 	reactionTimerHandle = xTimerCreate("Reaction Timer",pdMS_TO_TICKS(200),pdFALSE,(void *) 0,reactionElapse);
 
