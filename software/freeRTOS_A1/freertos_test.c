@@ -162,7 +162,7 @@ void stableElapse(stabilityTimerHandle)
 
 void Load_Controller ()
 {
-	int curloadstates;
+	int curloadstates[5];
 	int curswstates[5];
 	int MFlag;
 	int loadManaging = 0;
@@ -170,7 +170,6 @@ void Load_Controller ()
 	int newnetstate;
 	int	stablelapse = 1;
 	int Output_LoadStates[5];
-	int switc
 	int target_load;
 	//Changes the load as requested
 	//Checks the state of the switches and MaintenanceState flag before changing the load.
@@ -186,33 +185,50 @@ void Load_Controller ()
 
 		if(MaintenanceState == FLAG_HIGH){
 			xSemaphoreTake(LoadStateSem,portMAX_DELAY);
-			LoadStates[0] = curswstates && 0x01;
-			LoadStates[1] = curswstates && 0x02;
-			LoadStates[2] = curswstates && 0x04;
-			LoadStates[3] = curswstates && 0x08;
-			LoadStates[4] = curswstates && 0x10;
+			LoadStates[0] = curswstates[0];
+			LoadStates[1] = curswstates [1];
+			LoadStates[2] = curswstates [2];
+			LoadStates[3] = curswstates [3];
+			LoadStates[4] = curswstates [4];
 			curloadstates = LoadStates;
 			xSemaphoreGive(LoadStateSem);
 		}else{
 			if(xQueueReceive(FreqStateQ,&newnetstate,portMAX_DELAY) == pdTRUE){
 				if(curnetstate != newnetstate){
 					//Starts stability timer on network state change.
+					loadManaging = FLAG_HIGH;
 					xTimerStart(stabilityTimerHandle,50);
-				}else{
+				}
+				if(loadManaging == FLAG_HIGH){
 					if(stablelapse == FLAG_HIGH){
 						//timerlapsed
 						if(curnetstate == FLAG_LOW){
 							//stable - add new load
 							for(int x = 4;x>=0;x--){
-
+								if((curswstates[x] == 1)&&curloadstates[x] == 0){
+									curloadstates[x] = 1;
+									target_load = x;
+									xTimerStart(stabilityTimerHandle,50);
+									break;
+								}
 							}
 						}else{
 							//unstable - shed
+							for(int x = 0;x<5;x++){
+								if((curswstates[x] == 1)&& curloadstates[x] == 1){
+									curloadstates[x] = 0;
+									target_load = x;
+									xTimerStart(stabilityTimerHandle,50);
+									break;
+								}
+							}
 						}
-					}else{
-
 					}
 				}
+				//update loadstates
+				xSemaphoreTake(LoadStateSem,portMAX_DELAY);
+				LoadStates = curloadstates;
+				xSemaphoreGive(LoadStateSem);
 			}
 		}
 
