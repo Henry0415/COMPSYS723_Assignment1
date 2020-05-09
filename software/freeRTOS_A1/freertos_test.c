@@ -119,7 +119,7 @@ void Monitor_Frequency()
 	int unstable = 0;
 	struct thresholdval tv;
 	while (1){
-
+		ulTaskNotifyTake(pdTRUE,portMAX_DELAY);
 		if(xQueueReceive(FrequencyUpdateQ,&period,portMAX_DELAY) == pdTRUE){
 			freq = SAMPLING_FREQ/period;
 			if(prev_freq == 0){
@@ -131,7 +131,6 @@ void Monitor_Frequency()
 			qbody.cur_freq = freq;
 			qbody.roc = roc;
 			xQueueSendToBack(MonitorOutputQ,&qbody,pdFALSE);
-
 			xSemaphoreTake(ThresholdValueSem, portMAX_DELAY);
 			tv = ThresholdValue;
 			xSemaphoreGive(ThresholdValueSem);
@@ -147,7 +146,7 @@ void Monitor_Frequency()
 
 			xQueueSendToBack(FreqStateQ,&unstable,pdFALSE);
 		}
-		ulTaskNotifyTake(pdTRUE,portMAX_DELAY);
+
 	}
 
 
