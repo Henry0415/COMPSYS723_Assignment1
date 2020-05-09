@@ -30,6 +30,7 @@
 /*
  * Create the demo tasks then start the scheduler.
  */
+
 // Macros
 #define FLAG_HIGH 1
 #define FLAG_LOW 0
@@ -116,7 +117,7 @@ void Monitor_Frequency()
 	double roc;
 	struct monitor_package qbody;
 	int unstable = 0;
-	struct thresholdvalue tv;
+	struct thresholdval tv;
 	while (1){
 
 		if(xQueueReceive(FrequencyUpdateQ,&period,portMAX_DELAY) == pdTRUE){
@@ -146,7 +147,7 @@ void Monitor_Frequency()
 
 			xQueueSendToBack(FreqStateQ,&unstable,pdFALSE);
 		}
-		ulTaskNotifyTake(pdTRUE,portMAX_DELAY)
+		ulTaskNotifyTake(pdTRUE,portMAX_DELAY);
 	}
 
 
@@ -184,7 +185,11 @@ void Load_Controller ()
 
 		if(MaintenanceState == FLAG_HIGH){
 			xSemaphoreTake(LoadStateSem,portMAX_DELAY);
-			LoadStates = curswstates;
+			LoadStates[0] = curswstates && 0x01;
+			LoadStates[1] = curswstates && 0x02;
+			LoadStates[2] = curswstates && 0x04;
+			LoadStates[3] = curswstates && 0x08;
+			LoadStates[4] = curswstates && 0x10;
 			curloadstates = LoadStates;
 			xSemaphoreGive(LoadStateSem);
 		}else{
@@ -225,8 +230,10 @@ void Output_Load()
 	struct monitor_package freq_pack;
 	while(1){
 		if(xQueueReceive(MonitorOutputQ,&freq_pack,portMAX_DELAY) == pdTRUE){
-			printf("freq: %f\n",freq_pack.cur_freq);
-			printf("roc: %f\n",freq_pack.roc);
+//			printf("freq: %f\n",freq_pack.cur_freq);
+//			printf("roc: %f\n",freq_pack.roc);
+			printf("%f\n",freq_pack.cur_freq);
+			printf("%f\n",freq_pack.roc);
 		}
 	}
 
