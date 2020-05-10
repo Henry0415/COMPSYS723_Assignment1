@@ -109,7 +109,17 @@ void switchPolling ()
 void UserInputHandler()
 {
 	//Handles User keyboard input to change threshold values.
+	char keyboard_input;
+	unsigned int threshvalue;
+	while(1){
+		if (xQueueReceive(KeyboardInputQ,&keyboard_input,portMAX_DELAY) == pdTRUE){
+			if( keyboard_input == 'f'){
 
+			}else if (keyboard_input == 'r'){
+
+			}
+		}
+	}
 
 }
 
