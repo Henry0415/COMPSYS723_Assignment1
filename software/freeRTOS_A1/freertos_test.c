@@ -84,7 +84,6 @@ void freq_relay(){
 	//printf("%f Hz\n", temp);
 	//Send to Queue
 	xQueueSendToBackFromISR(FrequencyUpdateQ,&temp,pdFALSE);
-	xTaskNotifyGive(4);
 }
 
 void push_buttonISR(){
@@ -121,7 +120,6 @@ void Monitor_Frequency()
 	int unstable = 0;
 	struct thresholdval tv;
 	while (1){
-		ulTaskNotifyTake(pdTRUE,portMAX_DELAY);
 		if(xQueueReceive(FrequencyUpdateQ,&period,portMAX_DELAY) == pdTRUE){
 			freq = SAMPLING_FREQ/period;
 			if(prev_freq == 0){
@@ -260,9 +258,8 @@ void Load_Controller ()
 				xSemaphoreGive(LoadStateSem);
 				if (target_load != 999){
 					//send target load
-
+					xQueueSendToBack(ShedLoadQ,&target_load,pdFALSE);
 				}
-				//send shed target load to output_load
 			}
 		}
 	}
