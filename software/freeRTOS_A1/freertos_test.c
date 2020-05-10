@@ -381,6 +381,12 @@ void Output_Load()
 
 			redLEDs = 0x00000;
 
+			printf("%f\n",LoadStates[0]);
+			printf("%f\n",LoadStates[1]);
+			printf("%f\n",LoadStates[2]);
+			printf("%f\n",LoadStates[3]);
+			printf("%f\n",LoadStates[4]);
+
 			redLED0 = (LoadStates[0] & 0x01);
 			redLED1 = (LoadStates[1] & 0x02);
 			redLED2 = (LoadStates[2] & 0x04);
