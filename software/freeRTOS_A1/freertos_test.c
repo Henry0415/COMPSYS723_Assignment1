@@ -110,11 +110,15 @@ void UserInputHandler()
 {
 	//Handles User keyboard input to change threshold values.
 	char keyboard_input;
-	unsigned int threshvalue;
+	unsigned int threshvalue = 0;
 	while(1){
 		if (xQueueReceive(KeyboardInputQ,&keyboard_input,portMAX_DELAY) == pdTRUE){
 			if( keyboard_input == 'f'){
-
+				while(keyboard_input != '\n'){
+					if(xQueueReceive(KeyboardInputQ,&keyboard_input,portMAX_DELAY) == pdTRUE){
+						threshvalue = threshvalue + keyboard_input
+					}
+				}
 			}else if (keyboard_input == 'r'){
 
 			}
@@ -209,7 +213,7 @@ void Load_Controller ()
 		curswstates[3] = SwitchState && 0x08;
 		curswstates[4] = SwitchState && 0x10;;
 		xSemaphoreGive(SwitchStatesSem);
-
+		xQueueReceive(FreqStateQ,&newnetstate,portMAX_DELAY);
 		xSemaphoreTake(MaintenanceStateSem,portMAX_DELAY);
 		MFlag = MaintenanceState;
 		xSemaphoreGive(MaintenanceStateSem);
@@ -242,7 +246,6 @@ void Load_Controller ()
 			}
 			xSemaphoreGive(LoadStateSem);
 		}else{
-			if(xQueueReceive(FreqStateQ,&newnetstate,portMAX_DELAY) == pdTRUE){
 				if(curnetstate != newnetstate){
 					//Starts stability timer on network state change.
 					loadManaging = FLAG_HIGH;
@@ -320,7 +323,6 @@ void Load_Controller ()
 					//send target load
 					xQueueSendToBack(ShedLoadQ,&target_load,pdFALSE);
 				}
-			}
 		}
 	}
 }
