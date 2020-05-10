@@ -312,7 +312,10 @@ void Load_Controller ()
 								if((curswstates[x] == 1) && (curloadstates[x] == 1)){
 									curloadstates[x] = 0;
 									target_load = x;
-									xTimerStart(stabilityTimerHandle,50);
+									xSemaphoreTake(FlagStableElapseSem, portMAX_DELAY);
+									flagStableElapse = FLAG_LOW;
+									xSemaphoreGive(FlagStableElapseSem);
+									xTimerReset(stabilityTimerHandle,50);
 									xTimerStop(reactionTimerHandle,50);
 									break;
 								}
@@ -458,7 +461,7 @@ int main(void)
 			return 1;
 		}
 
-	ThresholdValue.roc = 15;
+	ThresholdValue.roc = 20;
 
 	alt_up_ps2_enable_read_interrupt(ps2_device);
 	alt_irq_register(PS2_IRQ, ps2_device, ps2_isr);
