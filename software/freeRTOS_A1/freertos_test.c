@@ -116,7 +116,6 @@ void UserInputHandler()
 			if( keyboard_input == 'f'){
 				while(keyboard_input != '\n'){
 					if(xQueueReceive(KeyboardInputQ,&keyboard_input,portMAX_DELAY) == pdTRUE){
-						threshvalue = threshvalue + keyboard_input
 					}
 				}
 			}else if (keyboard_input == 'r'){
