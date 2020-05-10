@@ -138,7 +138,7 @@ void Monitor_Frequency()
 			if(freq < tv.freq || roc > tv.roc){
 				unstable = 1;
 				//Start reaction timer.
-				xTimerStart(reactionTimerHandle,50);
+				xTimerReset(reactionTimerHandle,50);
 			}else{
 				unstable = 0;
 			}
@@ -182,6 +182,8 @@ void Load_Controller ()
 		xSemaphoreTake(MaintenanceStateSem,portMAX_DELAY);
 		MFlag = MaintenanceState;
 		xSemaphoreGive(MaintenanceStateSem);
+		//WHEN target_load = 999, NO TARGET TO SEND
+		target_load = 999;
 
 		if(MaintenanceState == FLAG_HIGH){
 			xSemaphoreTake(LoadStateSem,portMAX_DELAY);
@@ -219,9 +221,14 @@ void Load_Controller ()
 									curloadstates[x] = 0;
 									target_load = x;
 									xTimerStart(stabilityTimerHandle,50);
+									xTimerStop(reactionTimerHandle,50);
 									break;
 								}
 							}
+						}
+						//check if all loads have been reestablished
+						if (curloadstates == curswstates){
+							loadManaging = FLAG_LOW;
 						}
 					}
 				}
@@ -229,12 +236,13 @@ void Load_Controller ()
 				xSemaphoreTake(LoadStateSem,portMAX_DELAY);
 				LoadStates = curloadstates;
 				xSemaphoreGive(LoadStateSem);
+				if (target_load != 999){
+					//send target load
+
+				}
+				//send shed target load to output_load
 			}
 		}
-
-
-	//Stops reaction timer.
-		xTimerStop(reactionTimerHandle,50);
 	}
 }
 
