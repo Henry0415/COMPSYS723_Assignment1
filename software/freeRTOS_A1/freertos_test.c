@@ -48,7 +48,9 @@ struct monitor_package{
 struct thresholdval ThresholdValue;
 
 int flagStableElapse;
-int SwitchState[5];
+//int SwitchState[5];
+
+int SwitchState;
 int MaintenanceState;
 int LoadStates[5];
 
@@ -176,7 +178,12 @@ void Load_Controller ()
 	while(1){
 
 		xSemaphoreTake(SwitchStatesSem,portMAX_DELAY);
-		curswstates = SwitchState;
+//		curswstates = SwitchState;
+		curswstates[0] = SwitchState && 0x01;
+		curswstates[1] = SwitchState && 0x02;
+		curswstates[2] = SwitchState && 0x04;
+		curswstates[3] = SwitchState && 0x08;
+		curswstates[4] = SwitchState && 0x10;;
 		xSemaphoreGive(SwitchStatesSem);
 
 		xSemaphoreTake(MaintenanceStateSem,portMAX_DELAY);
@@ -185,12 +192,21 @@ void Load_Controller ()
 
 		if(MaintenanceState == FLAG_HIGH){
 			xSemaphoreTake(LoadStateSem,portMAX_DELAY);
-			LoadStates[0] = curswstates[0];
-			LoadStates[1] = curswstates [1];
-			LoadStates[2] = curswstates [2];
-			LoadStates[3] = curswstates [3];
-			LoadStates[4] = curswstates [4];
-			curloadstates = LoadStates;
+//			LoadStates[0] = curswstates[0];
+//			LoadStates[1] = curswstates [1];
+//			LoadStates[2] = curswstates [2];
+//			LoadStates[3] = curswstates [3];
+//			LoadStates[4] = curswstates [4];
+//			curloadstates = LoadStates;
+
+			int i,j;
+			for (i=0;i<5;i++){
+				LoadStates[i] = curswstates[i];
+			}
+
+			for (j=0;j<5;j++){
+				curloadstates[j] = LoadStates[j];
+			}
 			xSemaphoreGive(LoadStateSem);
 		}else{
 			if(xQueueReceive(FreqStateQ,&newnetstate,portMAX_DELAY) == pdTRUE){
@@ -204,8 +220,9 @@ void Load_Controller ()
 						//timerlapsed
 						if(curnetstate == FLAG_LOW){
 							//stable - add new load
-							for(int x = 4;x>=0;x--){
-								if((curswstates[x] == 1)&&curloadstates[x] == 0){
+							int x;
+							for(x = 4;x>=0;x--){
+								if((curswstates[x] == 1) &&(curloadstates[x] == 0)){
 									curloadstates[x] = 1;
 									target_load = x;
 									xTimerStart(stabilityTimerHandle,50);
@@ -214,8 +231,9 @@ void Load_Controller ()
 							}
 						}else{
 							//unstable - shed
-							for(int x = 0;x<5;x++){
-								if((curswstates[x] == 1)&& curloadstates[x] == 1){
+							int x;
+							for(x = 0;x<5;x++){
+								if((curswstates[x] == 1) && (curloadstates[x] == 1)){
 									curloadstates[x] = 0;
 									target_load = x;
 									xTimerStart(stabilityTimerHandle,50);
@@ -227,7 +245,11 @@ void Load_Controller ()
 				}
 				//update loadstates
 				xSemaphoreTake(LoadStateSem,portMAX_DELAY);
-				LoadStates = curloadstates;
+//				LoadStates = curloadstates;
+				int i;
+				for (i=0;i<5;i++){
+					LoadStates[i] = curloadstates[i];
+				}
 				xSemaphoreGive(LoadStateSem);
 			}
 		}
@@ -272,11 +294,11 @@ int main(void)
 	ShedLoadQ = xQueueCreate(100, sizeof(int));
 	FreqStateQ = xQueueCreate(100, sizeof(int));
 
-	ThresholdValueSem = xSemaphoreCreateBinary();
-	FlagStableElapseSem = xSemaphoreCreateBinary();
-	SwitchStatesSem = xSemaphoreCreateBinary();
-	MaintenanceStateSem = xSemaphoreCreateBinary();
-	LoadStateSem = xSemaphoreCreateBinary();
+	ThresholdValueSem = xSemaphoreCreateMutex();
+	FlagStableElapseSem = xSemaphoreCreateMutex();
+	SwitchStatesSem = xSemaphoreCreateMutex();
+	MaintenanceStateSem = xSemaphoreCreateMutex();
+	LoadStateSem = xSemaphoreCreateMutex();
 
 	/* The RegTest tasks as described at the top of this file. */
 	//xTaskCreate( prvFirstRegTestTask, "Rreg1", configMINIMAL_STACK_SIZE, mainREG_TEST_1_PARAMETER, mainREG_TEST_PRIORITY, NULL);
