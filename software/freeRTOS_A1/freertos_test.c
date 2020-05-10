@@ -341,6 +341,11 @@ void Load_Controller ()
 						}
 						xSemaphoreGive(ShedTimerSem);
 					}
+				}else{
+					int i;
+					for (i=0;i<5;i++){
+						curloadstates[i] = curswstates[i];
+					}
 				}
 				//update loadstates
 				xSemaphoreTake(LoadStateSem,portMAX_DELAY);
