@@ -50,8 +50,16 @@ struct thresholdval ThresholdValue;
 
 int flagStableElapse;
 //int SwitchState[5];
-int redLEDs;
-int greenLEDs;
+int redLED0;
+int redLED1;
+int redLED2;
+int redLED3;
+int redLED4;
+int greenLED0;
+int greenLED1;
+int greenLED2;
+int greenLED3;
+int greenLED4;
 
 int SwitchState;
 int MaintenanceState;
@@ -99,9 +107,11 @@ void push_buttonISR(){
 
 void switchPolling ()
 {
-	// periodically poll switch states
-	switchValues = IORD(SLIDE_SWITCH_BASE,0);
-	SwitchState = switchValues;
+	while(1){
+		// periodically poll switch states
+		switchValues = IORD(SLIDE_SWITCH_BASE,0);
+		SwitchState = switchValues;
+	}
 }
 
 void UserInputHandler()
@@ -193,7 +203,8 @@ void Load_Controller ()
 		xSemaphoreGive(SwitchStatesSem);
 
 		xSemaphoreTake(MaintenanceStateSem,portMAX_DELAY);
-		MFlag = MaintenanceState;
+//		MFlag = MaintenanceState;
+		MFlag = 1;
 		xSemaphoreGive(MaintenanceStateSem);
 		//WHEN target_load = 999, NO TARGET TO SEND
 		target_load = 999;
@@ -205,7 +216,7 @@ void Load_Controller ()
 			}
 		}
 
-		if(MaintenanceState == FLAG_HIGH){
+		if(MFlag == FLAG_HIGH){
 			xSemaphoreTake(LoadStateSem,portMAX_DELAY);
 //			LoadStates[0] = curswstates[0];
 //			LoadStates[1] = curswstates [1];
@@ -330,8 +341,18 @@ void Output_Load()
 //			printf("%f\n",freq_pack.cur_freq);
 //			printf("%f\n",freq_pack.roc);
 
-			redLEDs = 0xFFFF;
-			IOWR_ALTERA_AVALON_PIO_DATA(RED_LEDS_BASE,redLEDs);
+			redLED0 = (LoadStates[0] && 0x01);
+//			printf(redLED0);
+			IOWR_ALTERA_AVALON_PIO_DATA(RED_LEDS_BASE,redLED0);
+//			redLED1 = LoadStates[1] && 0x02;
+//			IOWR_ALTERA_AVALON_PIO_DATA(RED_LEDS_BASE,redLED1);
+//			redLED2 = LoadStates[2] && 0x04;
+//			IOWR_ALTERA_AVALON_PIO_DATA(RED_LEDS_BASE,redLED2);
+//			redLED3 = LoadStates[3] && 0x08;
+//			IOWR_ALTERA_AVALON_PIO_DATA(RED_LEDS_BASE,redLED3);
+//			redLED4 = LoadStates[4] && 0x10;
+//			IOWR_ALTERA_AVALON_PIO_DATA(RED_LEDS_BASE,redLED4);
+
 			IOWR_ALTERA_AVALON_PIO_DATA(GREEN_LEDS_BASE,0xFFFF);
 		}
 	}
@@ -361,10 +382,13 @@ int main(void)
 	//xTaskCreate( prvFirstRegTestTask, "Rreg1", configMINIMAL_STACK_SIZE, mainREG_TEST_1_PARAMETER, mainREG_TEST_PRIORITY, NULL);
 	//xTaskCreate( prvSecondRegTestTask, "Rreg2", configMINIMAL_STACK_SIZE, mainREG_TEST_2_PARAMETER, mainREG_TEST_PRIORITY, NULL);
 
-	//create timers
+	//create tasks
 	xTaskCreate(Monitor_Frequency, "monfreq", configMINIMAL_STACK_SIZE,NULL,4,4);
-	xTaskCreate(Output_Load,"out_load",configMINIMAL_STACK_SIZE,NULL,2,2);
+	xTaskCreate(Output_Load,"out_load",configMINIMAL_STACK_SIZE,NULL,3,2);
+	xTaskCreate(switchPolling,"switch_poll",configMINIMAL_STACK_SIZE,NULL,1,1);
+	xTaskCreate(Load_Controller,"load_control",configMINIMAL_STACK_SIZE,NULL,2,3);
 
+	//create timers
 	stabilityTimerHandle = xTimerCreate("Stability Timer",pdMS_TO_TICKS(500),pdTRUE,(void *) 0,stableElapse);
 	reactionTimerHandle = xTimerCreate("Reaction Timer",pdMS_TO_TICKS(200),pdFALSE,(void *) 0,reactionElapse);
 
