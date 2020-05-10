@@ -287,7 +287,7 @@ void Load_Controller ()
 					//sem
 					xSemaphoreTake(ShedTimerSem,portMAX_DELAY);
 					xSemaphoreTake(FlagStableElapseSem, portMAX_DELAY);
-					if(stablelapse == FLAG_HIGH){
+					if(flagStableElapse == FLAG_HIGH){
 						//timerlapsed
 						xSemaphoreGive(FlagStableElapseSem);
 						xSemaphoreGive(ShedTimerSem);
