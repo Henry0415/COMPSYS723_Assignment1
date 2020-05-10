@@ -10,6 +10,7 @@
 #include "system.h"
 #include "sys/alt_irq.h"
 #include "io.h"
+#include "altera_up_avalon_ps2.h"
 #include "altera_avalon_pio_regs.h"
 
 /* Scheduler includes. */
@@ -49,6 +50,8 @@ struct thresholdval ThresholdValue;
 
 int flagStableElapse;
 //int SwitchState[5];
+int redLEDs;
+int greenLEDs;
 
 int SwitchState;
 int MaintenanceState;
@@ -195,9 +198,11 @@ void Load_Controller ()
 		//WHEN target_load = 999, NO TARGET TO SEND
 		target_load = 999;
 
-		for (int i=0;i<5;i++){
+		int i;
+		for (i=0;i<5;i++){
 			if(curswstates[i] == 0){
 			curloadstates[i]= 0;
+			}
 		}
 
 		if(MaintenanceState == FLAG_HIGH){
@@ -320,10 +325,14 @@ void Output_Load()
 	while(1){
 		printf("output load 1\n");
 		if(xQueueReceive(MonitorOutputQ,&freq_pack,portMAX_DELAY) == pdTRUE){
-//			printf("freq: %f\n",freq_pack.cur_freq);
-//			printf("roc: %f\n",freq_pack.roc);
-			printf("%f\n",freq_pack.cur_freq);
-			printf("%f\n",freq_pack.roc);
+			printf("freq: %f\n",freq_pack.cur_freq);
+			printf("roc: %f\n",freq_pack.roc);
+//			printf("%f\n",freq_pack.cur_freq);
+//			printf("%f\n",freq_pack.roc);
+
+			redLEDs = 0xFFFF;
+			IOWR_ALTERA_AVALON_PIO_DATA(RED_LEDS_BASE,redLEDs);
+			IOWR_ALTERA_AVALON_PIO_DATA(GREEN_LEDS_BASE,0xFFFF);
 		}
 	}
 
@@ -366,4 +375,5 @@ int main(void)
 	 the scheduler. */
 	for (;;);
 }
+
 
