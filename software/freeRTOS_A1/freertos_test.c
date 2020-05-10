@@ -5,13 +5,13 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-/*Freq Analyser include*/
 #include <unistd.h>
 #include "system.h"
 #include "sys/alt_irq.h"
 #include "io.h"
 #include "altera_up_avalon_ps2.h"
 #include "altera_avalon_pio_regs.h"
+#include "altera_up_avalon_ps2.h"
 
 /* Scheduler includes. */
 #include "freertos/FreeRTOS.h"
@@ -50,11 +50,13 @@ struct thresholdval ThresholdValue;
 
 int flagStableElapse;
 //int SwitchState[5];
+int redLEDs;
 int redLED0;
 int redLED1;
 int redLED2;
 int redLED3;
 int redLED4;
+int greenLEDs;
 int greenLED0;
 int greenLED1;
 int greenLED2;
@@ -108,16 +110,32 @@ void push_buttonISR(){
 void switchPolling ()
 {
 	while(1){
-		// periodically poll switch states
-		switchValues = IORD(SLIDE_SWITCH_BASE,0);
-		SwitchState = switchValues;
+	// periodically poll switch states
+	switchValues = IORD(SLIDE_SWITCH_BASE,0);
+	xSemaphoreTake(SwitchStatesSem, portMAX_DELAY);
+	SwitchState = switchValues;
+	xSemaphoreGive(SwitchStatesSem);
 	}
 }
 
 void UserInputHandler()
 {
 	//Handles User keyboard input to change threshold values.
+	char keyboard_input;
+	unsigned int threshvalue = 0;
+	while(1){
+		if (xQueueReceive(KeyboardInputQ,&keyboard_input,portMAX_DELAY) == pdTRUE){
+			if( keyboard_input == 'f'){
+				while(keyboard_input != '\n'){
+					if(xQueueReceive(KeyboardInputQ,&keyboard_input,portMAX_DELAY) == pdTRUE){
+						threshvalue = threshvalue + keyboard_input;
+					}
+				}
+			}else if (keyboard_input == 'r'){
 
+			}
+		}
+	}
 
 }
 
@@ -169,6 +187,12 @@ void Monitor_Frequency()
 
 }
 
+void ps2_isr(void* ps2_device, alt_u32 id){
+	unsigned char byte;
+	alt_up_ps2_read_data_byte_timeout(ps2_device, &byte);
+//	xQueueSendtoBackFromISR(KeyboardInputQ,&byte,pdFALSE);
+}
+
 void stableElapse(stabilityTimerHandle)
 {
 	//called by stability timer when timer expires
@@ -195,13 +219,13 @@ void Load_Controller ()
 		printf("load controller 1\n");
 		xSemaphoreTake(SwitchStatesSem,portMAX_DELAY);
 //		curswstates = SwitchState;
-		curswstates[0] = SwitchState && 0x01;
-		curswstates[1] = SwitchState && 0x02;
-		curswstates[2] = SwitchState && 0x04;
-		curswstates[3] = SwitchState && 0x08;
-		curswstates[4] = SwitchState && 0x10;;
+		curswstates[0] = SwitchState & 0x01;
+		curswstates[1] = SwitchState & 0x02;
+		curswstates[2] = SwitchState & 0x04;
+		curswstates[3] = SwitchState & 0x08;
+		curswstates[4] = SwitchState & 0x10;;
 		xSemaphoreGive(SwitchStatesSem);
-
+		xQueueReceive(FreqStateQ,&newnetstate,portMAX_DELAY);
 		xSemaphoreTake(MaintenanceStateSem,portMAX_DELAY);
 //		MFlag = MaintenanceState;
 		MFlag = 1;
@@ -235,7 +259,6 @@ void Load_Controller ()
 			}
 			xSemaphoreGive(LoadStateSem);
 		}else{
-			if(xQueueReceive(FreqStateQ,&newnetstate,portMAX_DELAY) == pdTRUE){
 				if(curnetstate != newnetstate){
 					//Starts stability timer on network state change.
 					loadManaging = FLAG_HIGH;
@@ -300,7 +323,6 @@ void Load_Controller ()
 						}
 						xSemaphoreGive(ShedTimerSem);
 					}
-
 				}
 				//update loadstates
 				xSemaphoreTake(LoadStateSem,portMAX_DELAY);
@@ -314,7 +336,6 @@ void Load_Controller ()
 					//send target load
 					xQueueSendToBack(ShedLoadQ,&target_load,pdFALSE);
 				}
-			}
 		}
 	}
 }
@@ -341,19 +362,22 @@ void Output_Load()
 //			printf("%f\n",freq_pack.cur_freq);
 //			printf("%f\n",freq_pack.roc);
 
-			redLED0 = (LoadStates[0] && 0x01);
-//			printf(redLED0);
-			IOWR_ALTERA_AVALON_PIO_DATA(RED_LEDS_BASE,redLED0);
-//			redLED1 = LoadStates[1] && 0x02;
-//			IOWR_ALTERA_AVALON_PIO_DATA(RED_LEDS_BASE,redLED1);
-//			redLED2 = LoadStates[2] && 0x04;
-//			IOWR_ALTERA_AVALON_PIO_DATA(RED_LEDS_BASE,redLED2);
-//			redLED3 = LoadStates[3] && 0x08;
-//			IOWR_ALTERA_AVALON_PIO_DATA(RED_LEDS_BASE,redLED3);
-//			redLED4 = LoadStates[4] && 0x10;
-//			IOWR_ALTERA_AVALON_PIO_DATA(RED_LEDS_BASE,redLED4);
+			redLEDs = 0x00000;
 
-			IOWR_ALTERA_AVALON_PIO_DATA(GREEN_LEDS_BASE,0xFFFF);
+			redLED0 = (LoadStates[0] & 0x01);
+			redLED1 = (LoadStates[1] & 0x02);
+			redLED2 = (LoadStates[2] & 0x04);
+			redLED3 = (LoadStates[3] & 0x08);
+			redLED4 = (LoadStates[4] & 0x10);
+
+			redLEDs = redLEDs | redLED0;
+			redLEDs = redLEDs | redLED1;
+			redLEDs = redLEDs | redLED2;
+			redLEDs = redLEDs | redLED3;
+			redLEDs = redLEDs | redLED4;
+			IOWR_ALTERA_AVALON_PIO_DATA(RED_LEDS_BASE,redLEDs);
+
+			IOWR_ALTERA_AVALON_PIO_DATA(GREEN_LEDS_BASE,0x0000);
 		}
 	}
 
@@ -361,6 +385,16 @@ void Output_Load()
 
 int main(void)
 {
+
+	alt_up_ps2_dev * ps2_device = alt_up_ps2_open_dev(PS2_NAME);
+
+		if(ps2_device == NULL){
+			printf("can't find PS/2 device\n");
+			return 1;
+		}
+
+	alt_up_ps2_enable_read_interrupt(ps2_device);
+	alt_irq_register(PS2_IRQ, ps2_device, ps2_isr);
 	alt_irq_register(FREQUENCY_ANALYSER_IRQ, 0, freq_relay);
 	alt_irq_register(PUSH_BUTTON_IRQ,0,push_buttonISR);
 
@@ -384,9 +418,9 @@ int main(void)
 
 	//create tasks
 	xTaskCreate(Monitor_Frequency, "monfreq", configMINIMAL_STACK_SIZE,NULL,4,4);
-	xTaskCreate(Output_Load,"out_load",configMINIMAL_STACK_SIZE,NULL,3,2);
+	xTaskCreate(Output_Load,"out_load",configMINIMAL_STACK_SIZE,NULL,2,2);
 	xTaskCreate(switchPolling,"switch_poll",configMINIMAL_STACK_SIZE,NULL,1,1);
-	xTaskCreate(Load_Controller,"load_control",configMINIMAL_STACK_SIZE,NULL,2,3);
+	xTaskCreate(Load_Controller,"load_control",configMINIMAL_STACK_SIZE,NULL,3,3);
 
 	//create timers
 	stabilityTimerHandle = xTimerCreate("Stability Timer",pdMS_TO_TICKS(500),pdTRUE,(void *) 0,stableElapse);
