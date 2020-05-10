@@ -101,7 +101,9 @@ void switchPolling ()
 {
 	// periodically poll switch states
 	switchValues = IORD(SLIDE_SWITCH_BASE,0);
+	xSemaphoreTake(SwitchStatesSem, portMAX_DELAY);
 	SwitchState = switchValues;
+	xSemaphoreGive(SwitchStatesSem);
 }
 
 void UserInputHandler()
@@ -353,8 +355,8 @@ int main(void)
 			return 1;
 		}
 
-		alt_up_ps2_enable_read_interrupt(ps2_device);
-		alt_irq_register(PS2_IRQ, ps2_device, ps2_isr);
+	alt_up_ps2_enable_read_interrupt(ps2_device);
+	alt_irq_register(PS2_IRQ, ps2_device, ps2_isr);
 	alt_irq_register(FREQUENCY_ANALYSER_IRQ, 0, freq_relay);
 	alt_irq_register(PUSH_BUTTON_IRQ,0,push_buttonISR);
 
