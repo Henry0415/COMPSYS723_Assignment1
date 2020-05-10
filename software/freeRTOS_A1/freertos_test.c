@@ -120,7 +120,10 @@ void Monitor_Frequency()
 	int unstable = 0;
 	struct thresholdval tv;
 	while (1){
+<<<<<<< HEAD
+>>>>>>> ade588d20d71d6a1a7b2fada19597868a739ad64
 		if(xQueueReceive(FrequencyUpdateQ,&period,portMAX_DELAY) == pdTRUE){
+			printf("monitor freq 3\n");
 			freq = SAMPLING_FREQ/period;
 			if(prev_freq == 0){
 				prev_freq = freq;
@@ -130,6 +133,7 @@ void Monitor_Frequency()
 
 			qbody.cur_freq = freq;
 			qbody.roc = roc;
+			printf("monitor freq 4\n");
 			xQueueSendToBack(MonitorOutputQ,&qbody,pdFALSE);
 			xSemaphoreTake(ThresholdValueSem, portMAX_DELAY);
 			tv = ThresholdValue;
@@ -174,7 +178,7 @@ void Load_Controller ()
 	//Changes the load as requested
 	//Checks the state of the switches and MaintenanceState flag before changing the load.
 	while(1){
-
+		printf("load controller 1\n");
 		xSemaphoreTake(SwitchStatesSem,portMAX_DELAY);
 //		curswstates = SwitchState;
 		curswstates[0] = SwitchState && 0x01;
@@ -276,6 +280,7 @@ void Output_Load()
 	//Outputs status of controller and loads, to LEDs, sends snapshot to UART
 	struct monitor_package freq_pack;
 	while(1){
+		printf("output load 1\n");
 		if(xQueueReceive(MonitorOutputQ,&freq_pack,portMAX_DELAY) == pdTRUE){
 //			printf("freq: %f\n",freq_pack.cur_freq);
 //			printf("roc: %f\n",freq_pack.roc);
@@ -308,9 +313,11 @@ int main(void)
 	/* The RegTest tasks as described at the top of this file. */
 	//xTaskCreate( prvFirstRegTestTask, "Rreg1", configMINIMAL_STACK_SIZE, mainREG_TEST_1_PARAMETER, mainREG_TEST_PRIORITY, NULL);
 	//xTaskCreate( prvSecondRegTestTask, "Rreg2", configMINIMAL_STACK_SIZE, mainREG_TEST_2_PARAMETER, mainREG_TEST_PRIORITY, NULL);
+
 	//create timers
 	xTaskCreate(Monitor_Frequency, "monfreq", configMINIMAL_STACK_SIZE,NULL,4,4);
 	xTaskCreate(Output_Load,"out_load",configMINIMAL_STACK_SIZE,NULL,2,2);
+
 	stabilityTimerHandle = xTimerCreate("Stability Timer",pdMS_TO_TICKS(500),pdTRUE,(void *) 0,stableElapse);
 	reactionTimerHandle = xTimerCreate("Reaction Timer",pdMS_TO_TICKS(200),pdFALSE,(void *) 0,reactionElapse);
 
