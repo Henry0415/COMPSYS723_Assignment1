@@ -152,18 +152,23 @@ void Monitor_Frequency()
 	struct thresholdval tv;
 	while (1){
 		if(xQueueReceive(FrequencyUpdateQ,&period,portMAX_DELAY) == pdTRUE){
-			printf("monitor freq 3\n");
+//			printf("monitor freq 3\n");
 			freq = SAMPLING_FREQ/period;
 			if(prev_freq == 0){
 				prev_freq = freq;
 			}
 			//calculate ROC
-			roc = abs((freq - prev_freq)/period);
+			roc = abs(((freq - prev_freq)*SAMPLING_FREQ)/period);
 
 			qbody.cur_freq = freq;
 			qbody.roc = roc;
-			printf("monitor freq 4\n");
+//			printf("%f\n",freq);
+//			printf("%f\n", prev_freq);
+//			printf("%f\n", period);
+			printf("%f\n", roc);
+//			printf("monitor freq 4\n");
 			xQueueSendToBack(MonitorOutputQ,&qbody,pdFALSE);
+			prev_freq = freq;
 			xSemaphoreTake(ThresholdValueSem, portMAX_DELAY);
 			tv = ThresholdValue;
 			xSemaphoreGive(ThresholdValueSem);
@@ -216,7 +221,7 @@ void Load_Controller ()
 	//Changes the load as requested
 	//Checks the state of the switches and MaintenanceState flag before changing the load.
 	while(1){
-		printf("load controller 1\n");
+//		printf("load controller 1\n");
 		xSemaphoreTake(SwitchStatesSem,portMAX_DELAY);
 //		curswstates = SwitchState;
 		curswstates[0] = SwitchState & 0x01;
@@ -354,13 +359,12 @@ void Output_Load()
 {
 	//Outputs status of controller and loads, to LEDs, sends snapshot to UART
 	struct monitor_package freq_pack;
+	int shed_target;
 	while(1){
-		printf("output load 1\n");
+//		printf("output load 1\n");
 		if(xQueueReceive(MonitorOutputQ,&freq_pack,portMAX_DELAY) == pdTRUE){
-			printf("freq: %f\n",freq_pack.cur_freq);
-			printf("roc: %f\n",freq_pack.roc);
-//			printf("%f\n",freq_pack.cur_freq);
-//			printf("%f\n",freq_pack.roc);
+//			printf("freq: %f\n",freq_pack.cur_freq);
+//			printf("roc: %f\n",freq_pack.roc);
 
 			redLEDs = 0x00000;
 
@@ -376,8 +380,48 @@ void Output_Load()
 			redLEDs = redLEDs | redLED3;
 			redLEDs = redLEDs | redLED4;
 			IOWR_ALTERA_AVALON_PIO_DATA(RED_LEDS_BASE,redLEDs);
+		}
 
-			IOWR_ALTERA_AVALON_PIO_DATA(GREEN_LEDS_BASE,0x0000);
+		if(xQueueReceive(ShedLoadQ, &shed_target, 2) == pdTRUE){
+
+			greenLEDs = 0x00;
+
+			if(shed_target == 1){
+				greenLED0 = 1;
+			} else {
+				greenLED0 = 0;
+			}
+
+			if(shed_target == 2){
+				greenLED1 = 1;
+			} else {
+				greenLED1 = 0;
+			}
+
+			if(shed_target == 3){
+				greenLED2 = 1;
+			} else {
+				greenLED2 = 0;
+			}
+
+			if(shed_target == 4){
+				greenLED3 = 1;
+			} else {
+				greenLED3 = 0;
+			}
+
+			if(shed_target == 5){
+				greenLED4 = 1;
+			} else {
+				greenLED4 = 0;
+			}
+
+			greenLEDs = greenLEDs | greenLED0;
+			greenLEDs = greenLEDs | greenLED1;
+			greenLEDs = greenLEDs | greenLED2;
+			greenLEDs = greenLEDs | greenLED3;
+			greenLEDs = greenLEDs | greenLED4;
+			IOWR_ALTERA_AVALON_PIO_DATA(GREEN_LEDS_BASE,greenLEDs);
 		}
 	}
 
