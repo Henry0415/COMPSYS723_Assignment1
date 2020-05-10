@@ -53,7 +53,7 @@ int flagStableElapse;
 int SwitchState;
 int MaintenanceState;
 int LoadStates[5];
-
+int TimerShed = 0;
 int switchValues;
 
 
@@ -65,7 +65,6 @@ TimerHandle_t reactionTimerHandle;
 QueueHandle_t KeyboardInputQ;
 QueueHandle_t FrequencyUpdateQ;
 QueueHandle_t MonitorOutputQ;
-QueueHandle_t TimerShedQ;
 QueueHandle_t ShedLoadQ;
 QueueHandle_t FreqStateQ;
 
@@ -74,6 +73,7 @@ SemaphoreHandle_t FlagStableElapseSem;
 SemaphoreHandle_t SwitchStatesSem;
 SemaphoreHandle_t MaintenanceStateSem;
 SemaphoreHandle_t LoadStateSem;
+SemaphoreHandle_t ShedTimerSem;
 
 //Frequency Analyser
 
@@ -120,8 +120,6 @@ void Monitor_Frequency()
 	int unstable = 0;
 	struct thresholdval tv;
 	while (1){
-<<<<<<< HEAD
->>>>>>> ade588d20d71d6a1a7b2fada19597868a739ad64
 		if(xQueueReceive(FrequencyUpdateQ,&period,portMAX_DELAY) == pdTRUE){
 			printf("monitor freq 3\n");
 			freq = SAMPLING_FREQ/period;
@@ -162,6 +160,9 @@ void stableElapse(stabilityTimerHandle)
 {
 	//called by stability timer when timer expires
 	//checks is system is stable and sets flagStableElapse
+	xSemaphoreTake(FlagStableElapseSem, portMAX_DELAY);
+	flagStableElapse = FLAG_HIGH;
+	xSemaphoreGive(FlagStableElapseSem);
 }
 
 void Load_Controller ()
@@ -194,6 +195,11 @@ void Load_Controller ()
 		//WHEN target_load = 999, NO TARGET TO SEND
 		target_load = 999;
 
+		for (int i=0;i<5;i++){
+			if(curswstates[i] == 0){
+			curloadstates[i]= 0;
+		}
+
 		if(MaintenanceState == FLAG_HIGH){
 			xSemaphoreTake(LoadStateSem,portMAX_DELAY);
 //			LoadStates[0] = curswstates[0];
@@ -217,11 +223,18 @@ void Load_Controller ()
 				if(curnetstate != newnetstate){
 					//Starts stability timer on network state change.
 					loadManaging = FLAG_HIGH;
-					xTimerStart(stabilityTimerHandle,50);
+
+					xSemaphoreTake(FlagStableElapseSem, portMAX_DELAY);
+					flagStableElapse = FLAG_LOW;
+					xSemaphoreGive(FlagStableElapseSem);
+					xTimerReset(stabilityTimerHandle,50);
 				}
 				if(loadManaging == FLAG_HIGH){
+					//sem
+					xSemaphoreTake(ShedTimerSem,portMAX_DELAY);
 					if(stablelapse == FLAG_HIGH){
 						//timerlapsed
+						xSemaphoreGive(ShedTimerSem);
 						if(curnetstate == FLAG_LOW){
 							//stable - add new load
 							int x;
@@ -229,7 +242,12 @@ void Load_Controller ()
 								if((curswstates[x] == 1) &&(curloadstates[x] == 0)){
 									curloadstates[x] = 1;
 									target_load = x;
-									xTimerStart(stabilityTimerHandle,50);
+									xSemaphoreTake(FlagStableElapseSem, portMAX_DELAY);
+									flagStableElapse = FLAG_LOW;
+									xSemaphoreGive(FlagStableElapseSem);
+									xTimerReset(stabilityTimerHandle,50);
+
+
 									break;
 								}
 							}
@@ -250,7 +268,23 @@ void Load_Controller ()
 						if (curloadstates == curswstates){
 							loadManaging = FLAG_LOW;
 						}
+					}else{
+						if(TimerShed == FLAG_HIGH){
+							int x;
+							for(x = 0;x<5;x++){
+								if((curswstates[x] == 1) && (curloadstates[x] == 1)){
+									curloadstates[x] = 0;
+									target_load = x;
+									xTimerStart(stabilityTimerHandle,50);
+									xTimerStop(reactionTimerHandle,50);
+									break;
+								}
+							}
+							TimerShed = FLAG_LOW;
+						}
+						xSemaphoreGive(ShedTimerSem);
 					}
+
 				}
 				//update loadstates
 				xSemaphoreTake(LoadStateSem,portMAX_DELAY);
@@ -273,6 +307,10 @@ void reactionElapse(reactionTimerHandle)
 {
 	//called by reaction timer when timer expires
 	//adds timer value to the queue maybe
+	xSemaphoreTake(ShedTimerSem,portMAX_DELAY);
+	TimerShed = FLAG_HIGH;
+	xSemaphoreGive(ShedTimerSem);
+
 }
 
 void Output_Load()
@@ -300,7 +338,6 @@ int main(void)
 	FrequencyUpdateQ = xQueueCreate(100, sizeof(double));
 	KeyboardInputQ = xQueueCreate(100, sizeof(int));
 	MonitorOutputQ = xQueueCreate(100, sizeof(struct monitor_package));
-	TimerShedQ = xQueueCreate(100, sizeof(double));
 	ShedLoadQ = xQueueCreate(100, sizeof(int));
 	FreqStateQ = xQueueCreate(100, sizeof(int));
 
@@ -309,6 +346,7 @@ int main(void)
 	SwitchStatesSem = xSemaphoreCreateMutex();
 	MaintenanceStateSem = xSemaphoreCreateMutex();
 	LoadStateSem = xSemaphoreCreateMutex();
+	ShedTimerSem = xSemaphoreCreateMutex();
 
 	/* The RegTest tasks as described at the top of this file. */
 	//xTaskCreate( prvFirstRegTestTask, "Rreg1", configMINIMAL_STACK_SIZE, mainREG_TEST_1_PARAMETER, mainREG_TEST_PRIORITY, NULL);
