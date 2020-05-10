@@ -398,12 +398,6 @@ void Output_Load()
 			redLED3 = (LoadStates[3] & 0x08);
 			redLED4 = (LoadStates[4] & 0x10);
 
-			redLEDs = redLEDs | redLED0;
-			redLEDs = redLEDs | redLED1;
-			redLEDs = redLEDs | redLED2;
-			redLEDs = redLEDs | redLED3;
-			redLEDs = redLEDs | redLED4;
-			IOWR_ALTERA_AVALON_PIO_DATA(RED_LEDS_BASE,redLEDs);
 		}
 
 		if(xQueueReceive(ShedLoadQ, &shed_target, 2) == pdTRUE){
@@ -412,43 +406,52 @@ void Output_Load()
 			greenLEDs = 0x00;
 
 			if(shed_target == 0){
-				greenLED0 = 1;
+				if(greenLED0 == FLAG_HIGH){
+					greenLED0 = FLAG_LOW;
+				}else{
+					greenLED0 = FLAG_HIGH;
+					redLED0 = 0;
+				}
 				printf("load 1");
-			}
-			else {
-				greenLED0 = 0;
 			}
 
 			if(shed_target == 1){
-				greenLED1 = 1;
+				if(greenLED1 == FLAG_HIGH){
+					greenLED1 = FLAG_LOW;
+				}else{
+					greenLED1 = FLAG_HIGH;
+					redLED1 = 0;
+				}
 				printf("load 2");
 			}
-			else {
-				greenLED1 = 0;
-			}
-
 			if(shed_target == 2){
-				greenLED2 = 1;
+				if(greenLED2 == FLAG_HIGH){
+					greenLED2 = FLAG_LOW;
+				}else{
+					greenLED2 = FLAG_HIGH;
+					redLED2 = 0;
+				}
 				printf("load 3");
-			}
-			else {
-				greenLED2 = 0;
 			}
 
 			if(shed_target == 3){
-				greenLED3 = 1;
+				if(greenLED3 == FLAG_HIGH){
+					greenLED3 = FLAG_LOW;
+				}else{
+					greenLED3 = FLAG_HIGH;
+					redLED3 = 0;
+				}
 				printf("load 4");
-			}
-			else {
-				greenLED3 = 0;
 			}
 
 			if(shed_target == 4){
-				greenLED4 = 1;
+				if(greenLED4 == FLAG_HIGH){
+					greenLED4 = FLAG_LOW;
+				}else{
+					greenLED4 = FLAG_HIGH;
+					redLED4 = 0;
+				}
 				printf("load 5");
-			}
-			else {
-				greenLED4 = 0;
 			}
 
 			greenLEDs = greenLEDs | greenLED0;
@@ -456,9 +459,18 @@ void Output_Load()
 			greenLEDs = greenLEDs | greenLED2;
 			greenLEDs = greenLEDs | greenLED3;
 			greenLEDs = greenLEDs | greenLED4;
+
+			redLEDs = redLEDs | redLED0;
+			redLEDs = redLEDs | redLED1;
+			redLEDs = redLEDs | redLED2;
+			redLEDs = redLEDs | redLED3;
+			redLEDs = redLEDs | redLED4;
+
 //			IOWR_ALTERA_AVALON_PIO_DATA(GREEN_LEDS_BASE,0x00);
-			IOWR_ALTERA_AVALON_PIO_DATA(GREEN_LEDS_BASE,greenLEDs);
+
 		}
+		IOWR_ALTERA_AVALON_PIO_DATA(RED_LEDS_BASE,redLEDs);
+		IOWR_ALTERA_AVALON_PIO_DATA(GREEN_LEDS_BASE,greenLEDs);
 	}
 
 }
