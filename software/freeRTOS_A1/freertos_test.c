@@ -398,6 +398,10 @@ void Output_Load()
 			redLED3 = (LoadStates[3] & 0x08);
 			redLED4 = (LoadStates[4] & 0x10);
 
+			redLEDs = redLEDs | redLED0;
+			redLEDs = redLEDs | redLED2;
+			redLEDs = redLEDs | redLED3;
+			redLEDs = redLEDs | redLED4;
 		}
 
 		if(xQueueReceive(ShedLoadQ, &shed_target, 2) == pdTRUE){
@@ -459,17 +463,17 @@ void Output_Load()
 			greenLEDs = greenLEDs | greenLED2;
 			greenLEDs = greenLEDs | greenLED3;
 			greenLEDs = greenLEDs | greenLED4;
-
+			redLEDs = redLEDs | redLED0;
+			redLEDs = redLEDs | redLED1;
+			redLEDs = redLEDs | redLED2;
+			redLEDs = redLEDs | redLED3;
+			redLEDs = redLEDs | redLED4;
 
 
 //			IOWR_ALTERA_AVALON_PIO_DATA(GREEN_LEDS_BASE,0x00);
 
 		}
-		redLEDs = redLEDs | redLED0;
-		redLEDs = redLEDs | redLED1;
-		redLEDs = redLEDs | redLED2;
-		redLEDs = redLEDs | redLED3;
-		redLEDs = redLEDs | redLED4;
+
 
 		IOWR_ALTERA_AVALON_PIO_DATA(RED_LEDS_BASE,redLEDs);
 		IOWR_ALTERA_AVALON_PIO_DATA(GREEN_LEDS_BASE,greenLEDs);
