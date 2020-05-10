@@ -5,12 +5,12 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-/*Freq Analyser include*/
 #include <unistd.h>
 #include "system.h"
 #include "sys/alt_irq.h"
 #include "io.h"
 #include "altera_avalon_pio_regs.h"
+#include "altera_up_avalon_ps2.h"
 
 /* Scheduler includes. */
 #include "freertos/FreeRTOS.h"
@@ -156,6 +156,12 @@ void Monitor_Frequency()
 
 }
 
+void ps2_isr(void* ps2_device, alt_u32 id){
+	unsigned char byte;
+	alt_up_ps2_read_data_byte_timeout(ps2_device, &byte);
+	xQueueSendtoBackFromISR(KeyboardInputQ,&byte,pdFALSE);
+}
+
 void stableElapse(stabilityTimerHandle)
 {
 	//called by stability timer when timer expires
@@ -198,6 +204,7 @@ void Load_Controller ()
 		for (int i=0;i<5;i++){
 			if(curswstates[i] == 0){
 			curloadstates[i]= 0;
+			}
 		}
 
 		if(MaintenanceState == FLAG_HIGH){
@@ -284,7 +291,6 @@ void Load_Controller ()
 						}
 						xSemaphoreGive(ShedTimerSem);
 					}
-
 				}
 				//update loadstates
 				xSemaphoreTake(LoadStateSem,portMAX_DELAY);
@@ -331,6 +337,16 @@ void Output_Load()
 
 int main(void)
 {
+
+	alt_up_ps2_dev * ps2_device = alt_up_ps2_open_dev(PS2_NAME);
+
+		if(ps2_device == NULL){
+			printf("can't find PS/2 device\n");
+			return 1;
+		}
+
+		alt_up_ps2_enable_read_interrupt(ps2_device);
+		alt_irq_register(PS2_IRQ, ps2_device, ps2_isr);
 	alt_irq_register(FREQUENCY_ANALYSER_IRQ, 0, freq_relay);
 	alt_irq_register(PUSH_BUTTON_IRQ,0,push_buttonISR);
 
