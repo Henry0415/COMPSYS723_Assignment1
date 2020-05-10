@@ -230,9 +230,10 @@ void Load_Controller ()
 	int loadManaging = 0;
 	int curnetstate = 0;
 	int newnetstate;
-	int	stablelapse = 1;
-	int Output_LoadStates[5];
 	int target_load;
+	xSemaphoreTake(FlagStableElapseSem, portMAX_DELAY);
+	flagStableElapse = FLAG_HIGH;
+	xSemaphoreGive(FlagStableElapseSem);
 	//Changes the load as requested
 	//Checks the state of the switches and MaintenanceState flag before changing the load.
 	while(1){
