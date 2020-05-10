@@ -286,8 +286,10 @@ void Load_Controller ()
 				if(loadManaging == FLAG_HIGH){
 					//sem
 					xSemaphoreTake(ShedTimerSem,portMAX_DELAY);
+					xSemaphoreTake(FlagStableElapseSem, portMAX_DELAY);
 					if(stablelapse == FLAG_HIGH){
 						//timerlapsed
+						xSemaphoreGive(FlagStableElapseSem);
 						xSemaphoreGive(ShedTimerSem);
 						if(curnetstate == FLAG_LOW){
 							//stable - add new load
@@ -326,13 +328,14 @@ void Load_Controller ()
 							loadManaging = FLAG_LOW;
 						}
 					}else{
+						xSemaphoreGive(FlagStableElapseSem);
 						if(TimerShed == FLAG_HIGH){
 							int x;
 							for(x = 0;x<5;x++){
 								if((curswstates[x] == 1) && (curloadstates[x] == 1)){
 									curloadstates[x] = 0;
 									target_load = x;
-									xTimerStart(stabilityTimerHandle,50);
+									xTimerReset(stabilityTimerHandle,50);
 									xTimerStop(reactionTimerHandle,50);
 									break;
 								}
