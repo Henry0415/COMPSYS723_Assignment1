@@ -402,36 +402,41 @@ void Output_Load()
 
 			greenLEDs = 0x00;
 
-			if(shed_target == 1){
+			if(shed_target == 0){
 				greenLED0 = 1;
+				printf("load 1");
 			}
 //			else {
 //				greenLED0 = 0;
 //			}
 
-			if(shed_target == 2){
+			if(shed_target == 1){
 				greenLED1 = 1;
+				printf("load 2");
 			}
 //			else {
 //				greenLED1 = 0;
 //			}
 
-			if(shed_target == 3){
+			if(shed_target == 2){
 				greenLED2 = 1;
+				printf("load 3");
 			}
 //			else {
 //				greenLED2 = 0;
 //			}
 
-			if(shed_target == 4){
+			if(shed_target == 3){
 				greenLED3 = 1;
+				printf("load 4");
 			}
 //			else {
 //				greenLED3 = 0;
 //			}
 
-			if(shed_target == 5){
+			if(shed_target == 4){
 				greenLED4 = 1;
+				printf("load 5");
 			}
 //			else {
 //				greenLED4 = 0;
