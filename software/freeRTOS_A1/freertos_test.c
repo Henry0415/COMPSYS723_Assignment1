@@ -122,7 +122,7 @@ void UserInputHandler()
 {
 	//Handles User keyboard input to change threshold values.
 	char keyboard_input;
-	unsigned int threshvalue = 0;
+	unsigned int threshvalue = 30;
 	while(1){
 		if (xQueueReceive(KeyboardInputQ,&keyboard_input,portMAX_DELAY) == pdTRUE){
 			if( keyboard_input == 'f'){
@@ -149,9 +149,9 @@ void UserInputHandler()
 			xSemaphoreTake(ThresholdValueSem,portMAX_DELAY);
 			ThresholdValue.freq = threshvalue;
 			xSemaphoreGive(ThresholdValueSem);
+			}
 		}
 	}
-
 }
 
 void Monitor_Frequency()
@@ -180,7 +180,7 @@ void Monitor_Frequency()
 //			printf("%f\n",freq);
 //			printf("%f\n", prev_freq);
 //			printf("%f\n", period);
-			printf("%f\n", roc);
+//			printf("%f\n", roc);
 //			printf("monitor freq 4\n");
 			xQueueSendToBack(MonitorOutputQ,&qbody,pdFALSE);
 			prev_freq = freq;
@@ -247,8 +247,8 @@ void Load_Controller ()
 		xSemaphoreGive(SwitchStatesSem);
 		xQueueReceive(FreqStateQ,&newnetstate,portMAX_DELAY);
 		xSemaphoreTake(MaintenanceStateSem,portMAX_DELAY);
-//		MFlag = MaintenanceState;
-		MFlag = 1;
+		MFlag = MaintenanceState;
+//		MFlag = 1;
 		xSemaphoreGive(MaintenanceStateSem);
 		//WHEN target_load = 999, NO TARGET TO SEND
 		target_load = 999;
@@ -378,8 +378,8 @@ void Output_Load()
 	while(1){
 //		printf("output load 1\n");
 		if(xQueueReceive(MonitorOutputQ,&freq_pack,portMAX_DELAY) == pdTRUE){
-//			printf("freq: %f\n",freq_pack.cur_freq);
-//			printf("roc: %f\n",freq_pack.roc);
+			printf("freq: %f\n",freq_pack.cur_freq);
+			printf("roc: %f\n",freq_pack.roc);
 
 			redLEDs = 0x00000;
 
@@ -398,38 +398,44 @@ void Output_Load()
 		}
 
 		if(xQueueReceive(ShedLoadQ, &shed_target, 2) == pdTRUE){
+			printf("load shed");
 
 			greenLEDs = 0x00;
 
 			if(shed_target == 1){
 				greenLED0 = 1;
-			} else {
-				greenLED0 = 0;
 			}
+//			else {
+//				greenLED0 = 0;
+//			}
 
 			if(shed_target == 2){
 				greenLED1 = 1;
-			} else {
-				greenLED1 = 0;
 			}
+//			else {
+//				greenLED1 = 0;
+//			}
 
 			if(shed_target == 3){
 				greenLED2 = 1;
-			} else {
-				greenLED2 = 0;
 			}
+//			else {
+//				greenLED2 = 0;
+//			}
 
 			if(shed_target == 4){
 				greenLED3 = 1;
-			} else {
-				greenLED3 = 0;
 			}
+//			else {
+//				greenLED3 = 0;
+//			}
 
 			if(shed_target == 5){
 				greenLED4 = 1;
-			} else {
-				greenLED4 = 0;
 			}
+//			else {
+//				greenLED4 = 0;
+//			}
 
 			greenLEDs = greenLEDs | greenLED0;
 			greenLEDs = greenLEDs | greenLED1;
@@ -451,6 +457,8 @@ int main(void)
 			printf("can't find PS/2 device\n");
 			return 1;
 		}
+
+	ThresholdValue.roc = 15;
 
 	alt_up_ps2_enable_read_interrupt(ps2_device);
 	alt_irq_register(PS2_IRQ, ps2_device, ps2_isr);
