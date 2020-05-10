@@ -128,12 +128,27 @@ void UserInputHandler()
 			if( keyboard_input == 'f'){
 				while(keyboard_input != '\n'){
 					if(xQueueReceive(KeyboardInputQ,&keyboard_input,portMAX_DELAY) == pdTRUE){
-						threshvalue = threshvalue + keyboard_input;
+						if((keyboard_input<58)&&(keyboard_input>47)){
+						threshvalue = threshvalue + keyboard_input - '0';
+						threshvalue = threshvalue*10;
+						}
 					}
 				}
+				xSemaphoreTake(ThresholdValueSem,portMAX_DELAY);
+				ThresholdValue.freq = threshvalue;
+				xSemaphoreGive(ThresholdValueSem);
 			}else if (keyboard_input == 'r'){
-
-			}
+				while(keyboard_input != '\n'){
+					if(xQueueReceive(KeyboardInputQ,&keyboard_input,portMAX_DELAY) == pdTRUE){
+						if((keyboard_input<58)&&(keyboard_input>47)){
+							threshvalue = threshvalue + keyboard_input - '0';
+							threshvalue = threshvalue*10;
+						}
+					}
+				}
+			xSemaphoreTake(ThresholdValueSem,portMAX_DELAY);
+			ThresholdValue.freq = threshvalue;
+			xSemaphoreGive(ThresholdValueSem);
 		}
 	}
 
