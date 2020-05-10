@@ -386,11 +386,11 @@ void Output_Load()
 
 			redLEDs = 0x00000;
 
-			printf("%f\n",LoadStates[0]);
-			printf("%f\n",LoadStates[1]);
-			printf("%f\n",LoadStates[2]);
-			printf("%f\n",LoadStates[3]);
-			printf("%f\n",LoadStates[4]);
+//			printf("%f\n",LoadStates[0]);
+//			printf("%f\n",LoadStates[1]);
+//			printf("%f\n",LoadStates[2]);
+//			printf("%f\n",LoadStates[3]);
+//			printf("%f\n",LoadStates[4]);
 
 			redLED0 = (LoadStates[0] & 0x01);
 			redLED1 = (LoadStates[1] & 0x02);
@@ -415,47 +415,48 @@ void Output_Load()
 				greenLED0 = 1;
 				printf("load 1");
 			}
-//			else {
-//				greenLED0 = 0;
-//			}
+			else {
+				greenLED0 = 0;
+			}
 
 			if(shed_target == 1){
 				greenLED1 = 1;
 				printf("load 2");
 			}
-//			else {
-//				greenLED1 = 0;
-//			}
+			else {
+				greenLED1 = 0;
+			}
 
 			if(shed_target == 2){
 				greenLED2 = 1;
 				printf("load 3");
 			}
-//			else {
-//				greenLED2 = 0;
-//			}
+			else {
+				greenLED2 = 0;
+			}
 
 			if(shed_target == 3){
 				greenLED3 = 1;
 				printf("load 4");
 			}
-//			else {
-//				greenLED3 = 0;
-//			}
+			else {
+				greenLED3 = 0;
+			}
 
 			if(shed_target == 4){
 				greenLED4 = 1;
 				printf("load 5");
 			}
-//			else {
-//				greenLED4 = 0;
-//			}
+			else {
+				greenLED4 = 0;
+			}
 
 			greenLEDs = greenLEDs | greenLED0;
 			greenLEDs = greenLEDs | greenLED1;
 			greenLEDs = greenLEDs | greenLED2;
 			greenLEDs = greenLEDs | greenLED3;
 			greenLEDs = greenLEDs | greenLED4;
+//			IOWR_ALTERA_AVALON_PIO_DATA(GREEN_LEDS_BASE,0x00);
 			IOWR_ALTERA_AVALON_PIO_DATA(GREEN_LEDS_BASE,greenLEDs);
 		}
 	}
@@ -472,7 +473,7 @@ int main(void)
 			return 1;
 		}
 
-	ThresholdValue.roc = 20;
+	ThresholdValue.roc = 15;
 
 	alt_up_ps2_enable_read_interrupt(ps2_device);
 	alt_irq_register(PS2_IRQ, ps2_device, ps2_isr);
