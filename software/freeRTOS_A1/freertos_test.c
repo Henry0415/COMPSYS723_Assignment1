@@ -112,13 +112,12 @@ void push_buttonISR(void* context,alt_u32 id){
 
 	xSemaphoreTake(MaintenanceStateSem,portMAX_DELAY);
 	if(MaintenanceState == FLAG_HIGH){
-
 		MaintenanceState = FLAG_LOW;
 	}else{
 		MaintenanceState = FLAG_HIGH;
 	}
 	xSemaphoreGive(MaintenanceStateSem);
-	IOWR_ALTERA_AVALON_PIO_EDGE_CAP(PUSH_BUTTON_BASE, 0x7);
+
 }
 
 void switchPolling ()
@@ -307,6 +306,7 @@ void Load_Controller ()
 				curloadstates[i] = LoadStates[i];
 			}
 			xSemaphoreGive(LoadStateSem);
+			IOWR_ALTERA_AVALON_PIO_EDGE_CAP(PUSH_BUTTON_BASE, 0x7);
 			continue;
 		}
 		if(newnetstate == FLAG_HIGH){

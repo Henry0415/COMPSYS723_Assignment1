@@ -10,3 +10,7 @@ To run this project:
 6. Build the application project
 7. Right click the application project and select 'run as' then choose 'nios II hardware'
 
+To change the Frequency and ROC thresholds:
+1. Using the PS/2 keyboard,press 'f' or 'r' to select frequency or ROC respectively
+2. Type the value you want to set as the threshold value (integer value only)
+3. Press the Enter Key
