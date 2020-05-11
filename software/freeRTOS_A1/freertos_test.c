@@ -102,9 +102,13 @@ void freq_relay(){
 
 void push_buttonISR(){
 	if(MaintenanceState == FLAG_HIGH){
+		xSemaphoreTake(MaintenanceStateSem,portMAX_DELAY);
 		MaintenanceState = FLAG_LOW;
+		xSemaphoreGive(MaintenanceStateSem);
 	}else{
+		xSemaphoreTake(MaintenanceStateSem,portMAX_DELAY);
 		MaintenanceState = FLAG_HIGH;
+		xSemaphoreGive(MaintenanceStateSem);
 	}
 }
 
@@ -175,8 +179,8 @@ void UserInputHandler()
 			}
 		}
 		xSemaphoreTake(ThresholdValueSem,portMAX_DELAY);
-		printf("*******************%f\n",ThresholdValue.freq);
-		printf("*******************%f\n",ThresholdValue.roc);
+//		printf("*******************%f\n",ThresholdValue.freq);
+//		printf("*******************%f\n",ThresholdValue.roc);
 		xSemaphoreGive(ThresholdValueSem);
 	}
 }
@@ -338,7 +342,7 @@ void Load_Controller ()
 			xSemaphoreGive(LoadStateSem);
 			continue;
 		}else{
-			printf("load_managing begin\n");
+//			printf("load_managing begin\n");
 			if(curnetstate != newnetstate){
 				xTimerReset(stabilityTimerHandle,50);
 				xSemaphoreTake(FlagStableElapseSem,portMAX_DELAY);
@@ -348,17 +352,17 @@ void Load_Controller ()
 			xSemaphoreTake(FlagStableElapseSem,portMAX_DELAY);
 			int stableelapse = flagStableElapse;
 			xSemaphoreGive(FlagStableElapseSem);
-			printf("%i\n",stableelapse);
+//			printf("%i\n",stableelapse);
 			if(stableelapse == FLAG_HIGH){
-				printf("post stableelapse\n");
+//				printf("post stableelapse\n");
 				if(curnetstate == FLAG_LOW){
 					//stable network
 					//addload
 					int i;
 					for(i = 4;i>=0;i--){
-						printf("pre add load\n");
+//						printf("pre add load\n");
 						if(curloadstates[i] == 0 && curswstates[i] == 1){
-							printf("add load\n");
+//							printf("add load\n");
 							target_load = i;
 							curloadstates[i] = 1;
 							xSemaphoreTake(FlagStableElapseSem,portMAX_DELAY);
@@ -374,9 +378,9 @@ void Load_Controller ()
 					//shedload
 					int i;
 					for(i = 0;i<5;i++){
-						printf("pre shed load\n");
+//						printf("pre shed load\n");
 						if(curloadstates[i] == 1 && curswstates[i] == 1){
-							printf("shed load\n");
+//							printf("shed load\n");
 							target_load = i;
 							curloadstates[i] = 0;
 							xSemaphoreTake(FlagStableElapseSem,portMAX_DELAY);
@@ -453,16 +457,16 @@ void Output_Load()
 	while(1){
 //		printf("output load 1\n");
 		if(xQueueReceive(MonitorOutputQ,&freq_pack,portMAX_DELAY) == pdTRUE){
-			printf("freq: %f\n",freq_pack.cur_freq);
-			printf("roc: %f\n",freq_pack.roc);
+//			printf("freq: %f\n",freq_pack.cur_freq);
+//			printf("roc: %f\n",freq_pack.roc);
 
 			redLEDs = 0x00000;
 
-			printf("%i\n",LoadStates[0]);
-			printf("%i\n",LoadStates[1]);
-			printf("%i\n",LoadStates[2]);
-			printf("%i\n",LoadStates[3]);
-			printf("%i\n",LoadStates[4]);
+//			printf("%i\n",LoadStates[0]);
+//			printf("%i\n",LoadStates[1]);
+//			printf("%i\n",LoadStates[2]);
+//			printf("%i\n",LoadStates[3]);
+//			printf("%i\n",LoadStates[4]);
 
 			redLED0 = (LoadStates[0] << 0);
 			redLED1 = (LoadStates[1] << 1);
@@ -480,7 +484,7 @@ void Output_Load()
 		}
 
 		if(xQueueReceive(ShedLoadQ, &shed_target, 2) == pdTRUE){
-			printf("load shed");
+//			printf("load shed");
 
 			greenLEDs = 0x00;
 
@@ -491,7 +495,7 @@ void Output_Load()
 					greenLED0 = FLAG_LOW;
 //					redLED0 = 0;
 				}
-				printf("load 1");
+//				printf("load 1");
 			}
 
 			if(shed_target == 1){
@@ -501,7 +505,7 @@ void Output_Load()
 					greenLED1 = FLAG_LOW;
 //					redLED1 = 0;
 				}
-				printf("load 2");
+//				printf("load 2");
 			}
 			if(shed_target == 2){
 				if(redLED2 == FLAG_LOW){
@@ -510,7 +514,7 @@ void Output_Load()
 					greenLED2 = FLAG_LOW;
 //					redLED2 = 0;
 				}
-				printf("load 3");
+//				printf("load 3");
 			}
 
 			if(shed_target == 3){
@@ -520,7 +524,7 @@ void Output_Load()
 					greenLED3 = FLAG_LOW;
 //					redLED3 = 0;
 				}
-				printf("load 4");
+//				printf("load 4");
 			}
 
 			if(shed_target == 4){
@@ -530,7 +534,7 @@ void Output_Load()
 					greenLED4 = FLAG_LOW;
 //					redLED4 = 0;
 				}
-				printf("load 5");
+//				printf("load 5");
 			}
 
 			greenLEDs = greenLEDs | (greenLED0 << 0);
@@ -564,7 +568,7 @@ int main(void)
 	ThresholdValue.freq = 48;
 
 	alt_up_ps2_enable_read_interrupt(ps2_device);
-//	alt_irq_register(PS2_IRQ, ps2_device, ps2_isr);
+	alt_irq_register(PS2_IRQ, ps2_device, ps2_isr);
 	alt_irq_register(FREQUENCY_ANALYSER_IRQ, 0, freq_relay);
 	alt_irq_register(PUSH_BUTTON_IRQ,0,push_buttonISR);
 
