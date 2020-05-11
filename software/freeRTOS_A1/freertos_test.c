@@ -248,8 +248,8 @@ void Load_Controller ()
 		xSemaphoreGive(SwitchStatesSem);
 		xQueueReceive(FreqStateQ,&newnetstate,portMAX_DELAY);
 		xSemaphoreTake(MaintenanceStateSem,portMAX_DELAY);
-		MFlag = MaintenanceState;
-//		MFlag = 1;
+//		MFlag = MaintenanceState;
+		MFlag = 1;
 		xSemaphoreGive(MaintenanceStateSem);
 		//WHEN target_load = 999, NO TARGET TO SEND
 		target_load = 999;
@@ -396,11 +396,11 @@ void Output_Load()
 
 			redLEDs = 0x00000;
 
-//			printf("%f\n",LoadStates[0]);
-//			printf("%f\n",LoadStates[1]);
-//			printf("%f\n",LoadStates[2]);
-//			printf("%f\n",LoadStates[3]);
-//			printf("%f\n",LoadStates[4]);
+			printf("%i\n",LoadStates[0]);
+			printf("%i\n",LoadStates[1]);
+			printf("%i\n",LoadStates[2]);
+			printf("%i\n",LoadStates[3]);
+			printf("%i\n",LoadStates[4]);
 
 			redLED0 = (LoadStates[0] & 0x01);
 			redLED1 = (LoadStates[1] & 0x02);
@@ -409,6 +409,7 @@ void Output_Load()
 			redLED4 = (LoadStates[4] & 0x10);
 
 			redLEDs = redLEDs | redLED0;
+			redLEDs = redLEDs | redLED1;
 			redLEDs = redLEDs | redLED2;
 			redLEDs = redLEDs | redLED3;
 			redLEDs = redLEDs | redLED4;
