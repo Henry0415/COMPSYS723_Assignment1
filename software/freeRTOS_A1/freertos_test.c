@@ -68,7 +68,7 @@ int MaintenanceState;
 int LoadStates[5];
 int TimerShed = 0;
 int switchValues;
-
+int loadManageFin = 1;
 
 
 
@@ -87,6 +87,7 @@ SemaphoreHandle_t SwitchStatesSem;
 SemaphoreHandle_t MaintenanceStateSem;
 SemaphoreHandle_t LoadStateSem;
 SemaphoreHandle_t ShedTimerSem;
+SemaphoreHandle_t LoadManagerFinSem;
 
 //Frequency Analyser
 
@@ -189,9 +190,16 @@ void Monitor_Frequency()
 			xSemaphoreGive(ThresholdValueSem);
 			//block until semaphore obtained can cause deadlock
 			if(freq < tv.freq || roc > tv.roc){
+				xSemaphoreTake(LoadManagerFinSem,portMAX_DELAY);
+				if(loadManageFin == 1){
+					loadManageFin = 0;
+					xTimerReset(reactionTimerHandle,50);
+				}
+				xSemaphoreGive(LoadManagerFinSem);
+
 				unstable = 1;
 				//Start reaction timer.
-				xTimerReset(reactionTimerHandle,50);
+
 			}else{
 				unstable = 0;
 			}
@@ -362,6 +370,10 @@ void Load_Controller ()
 		}
 		if(curswstates == curloadstates){
 			loadManaging = FLAG_LOW;
+			xSemaphoreTake(LoadManagerFinSem,portMAX_DELAY);
+			loadManageFin = 1;
+			xSemaphoreGive(LoadManagerFinSem);
+
 		}
 		//update and send queue
 		xSemaphoreTake(LoadStateSem,portMAX_DELAY);
@@ -526,6 +538,7 @@ int main(void)
 	MaintenanceStateSem = xSemaphoreCreateMutex();
 	LoadStateSem = xSemaphoreCreateMutex();
 	ShedTimerSem = xSemaphoreCreateMutex();
+	LoadManagerFinSem = xSemaphoreCreateMutex();
 
 	/* The RegTest tasks as described at the top of this file. */
 	//xTaskCreate( prvFirstRegTestTask, "Rreg1", configMINIMAL_STACK_SIZE, mainREG_TEST_1_PARAMETER, mainREG_TEST_PRIORITY, NULL);
