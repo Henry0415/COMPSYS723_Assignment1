@@ -439,59 +439,59 @@ void Output_Load()
 			greenLEDs = 0x00;
 
 			if(shed_target == 0){
-				if(greenLED0 == FLAG_HIGH){
-					greenLED0 = FLAG_LOW;
-				}else{
+				if(redLED0 == FLAG_LOW){
 					greenLED0 = FLAG_HIGH;
-					redLED0 = 0;
+				}else{
+					greenLED0 = FLAG_LOW;
+//					redLED0 = 0;
 				}
 				printf("load 1");
 			}
 
 			if(shed_target == 1){
-				if(greenLED1 == FLAG_HIGH){
-					greenLED1 = FLAG_LOW;
-				}else{
+				if(redLED1 == FLAG_LOW){
 					greenLED1 = FLAG_HIGH;
-					redLED1 = 0;
+				}else{
+					greenLED1 = FLAG_LOW;
+//					redLED1 = 0;
 				}
 				printf("load 2");
 			}
 			if(shed_target == 2){
-				if(greenLED2 == FLAG_HIGH){
-					greenLED2 = FLAG_LOW;
-				}else{
+				if(redLED2 == FLAG_LOW){
 					greenLED2 = FLAG_HIGH;
-					redLED2 = 0;
+				}else{
+					greenLED2 = FLAG_LOW;
+//					redLED2 = 0;
 				}
 				printf("load 3");
 			}
 
 			if(shed_target == 3){
-				if(greenLED3 == FLAG_HIGH){
-					greenLED3 = FLAG_LOW;
-				}else{
+				if(redLED3 == FLAG_LOW){
 					greenLED3 = FLAG_HIGH;
-					redLED3 = 0;
+				}else{
+					greenLED3 = FLAG_LOW;
+//					redLED3 = 0;
 				}
 				printf("load 4");
 			}
 
 			if(shed_target == 4){
-				if(greenLED4 == FLAG_HIGH){
-					greenLED4 = FLAG_LOW;
-				}else{
+				if(redLED4 == FLAG_LOW){
 					greenLED4 = FLAG_HIGH;
-					redLED4 = 0;
+				}else{
+					greenLED4 = FLAG_LOW;
+//					redLED4 = 0;
 				}
 				printf("load 5");
 			}
 
-			greenLEDs = greenLEDs | greenLED0;
-			greenLEDs = greenLEDs | greenLED1;
-			greenLEDs = greenLEDs | greenLED2;
-			greenLEDs = greenLEDs | greenLED3;
-			greenLEDs = greenLEDs | greenLED4;
+			greenLEDs = greenLEDs | (greenLED0 << 0);
+			greenLEDs = greenLEDs | (greenLED1 << 1);
+			greenLEDs = greenLEDs | (greenLED2 << 2);
+			greenLEDs = greenLEDs | (greenLED3 << 3);
+			greenLEDs = greenLEDs | (greenLED4 << 4);
 
 //			IOWR_ALTERA_AVALON_PIO_DATA(GREEN_LEDS_BASE,0x00);
 
@@ -515,7 +515,7 @@ int main(void)
 		}
 
 	ThresholdValue.roc = 10;
-	ThresholdValue.freq = 48;
+	ThresholdValue.freq = 49;
 
 	alt_up_ps2_enable_read_interrupt(ps2_device);
 	alt_irq_register(PS2_IRQ, ps2_device, ps2_isr);
