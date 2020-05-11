@@ -125,10 +125,12 @@ void UserInputHandler()
 	char keyboard_input;
 	unsigned int threshvalue = 48;
 	while(1){
-		if (xQueueReceive(KeyboardInputQ,&keyboard_input,portMAX_DELAY) == pdTRUE){
+		if (xQueueReceive(KeyboardInputQ,&keyboard_input,2) == pdTRUE){
 			if( keyboard_input == 'f'){
 				while(keyboard_input != '\n'){
+					printf("f1\n");
 					if(xQueueReceive(KeyboardInputQ,&keyboard_input,portMAX_DELAY) == pdTRUE){
+						printf("f2\n");
 						if((keyboard_input<58)&&(keyboard_input>47)){
 						threshvalue = threshvalue + keyboard_input - '0';
 						threshvalue = threshvalue*10;
@@ -140,7 +142,9 @@ void UserInputHandler()
 				xSemaphoreGive(ThresholdValueSem);
 			}else if (keyboard_input == 'r'){
 				while(keyboard_input != '\n'){
+					printf("r1\n");
 					if(xQueueReceive(KeyboardInputQ,&keyboard_input,portMAX_DELAY) == pdTRUE){
+						printf("r2\n");
 						if((keyboard_input<58)&&(keyboard_input>47)){
 							threshvalue = threshvalue + keyboard_input - '0';
 							threshvalue = threshvalue*10;
@@ -222,7 +226,7 @@ void Monitor_Frequency()
 void ps2_isr(void* ps2_device, alt_u32 id){
 	unsigned char byte;
 	alt_up_ps2_read_data_byte_timeout(ps2_device, &byte);
-//	xQueueSendtoBackFromISR(KeyboardInputQ,&byte,pdFALSE);
+	xQueueSendToBackFromISR(KeyboardInputQ,&byte,pdFALSE);
 }
 
 void stableElapse(stabilityTimerHandle)
