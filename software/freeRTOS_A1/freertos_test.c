@@ -63,6 +63,17 @@ int greenLED2;
 int greenLED3;
 int greenLED4;
 
+int freq1 = 0;
+int freq2 = 0;
+int freq3 = 0;
+int freq4 = 0;
+int freq5 = 0;
+int roc1 = 0;
+int roc2 = 0;
+int roc3 = 0;
+int roc4 = 0;
+int roc5 = 0;
+
 int SwitchState;
 int MaintenanceState;
 int LoadStates[5];
@@ -454,11 +465,43 @@ void Output_Load()
 	//Outputs status of controller and loads, to LEDs, sends snapshot to UART
 	struct monitor_package freq_pack;
 	int shed_target;
+	int freq_temp;
+	int freq_new;
+	int roc_temp;
+	int roc_new;
 	while(1){
 //		printf("output load 1\n");
 		if(xQueueReceive(MonitorOutputQ,&freq_pack,portMAX_DELAY) == pdTRUE){
 //			printf("freq: %f\n",freq_pack.cur_freq);
 //			printf("roc: %f\n",freq_pack.roc);
+			freq_new = freq_pack.cur_freq;
+			roc_new = freq_pack.roc;
+
+			freq1 = freq2;
+			freq2 = freq3;
+			freq3 = freq4;
+			freq4 = freq5;
+			freq5 = freq_new;
+
+			roc1 = roc2;
+			roc2 = roc3;
+			roc3 = roc4;
+			roc4 = roc5;
+			roc5 = roc_new;
+
+			printf("*********************\n"
+					"frequency 1: %i\n"
+					"roc 1: %i\n"
+					"frequency 2: %i\n"
+					"roc 2: %i\n"
+					"frequency 3: %i\n"
+					"roc 3: %i\n"
+					"frequency 4: %i\n"
+					"roc 4: %i\n"
+					"frequency 5: %i\n"
+					"roc 5: %i\n"
+					"*********************\n",freq1,roc1,freq2,roc2,freq3,roc3,freq4,roc4,freq5,roc5);
+
 
 			redLEDs = 0x00000;
 
