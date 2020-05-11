@@ -248,128 +248,124 @@ void Load_Controller ()
 		xSemaphoreGive(SwitchStatesSem);
 		xQueueReceive(FreqStateQ,&newnetstate,portMAX_DELAY);
 		xSemaphoreTake(MaintenanceStateSem,portMAX_DELAY);
-//		MFlag = MaintenanceState;
-		MFlag = 1;
+		MFlag = MaintenanceState;
+//		MFlag = 1;
 		xSemaphoreGive(MaintenanceStateSem);
 		//WHEN target_load = 999, NO TARGET TO SEND
 		target_load = 999;
 
-		int i;
+		/*int i;
 		for (i=0;i<5;i++){
 			if(curswstates[i] == 0){
 			curloadstates[i]= 0;
 			}
-		}
+		}*/
 
 		if(MFlag == FLAG_HIGH){
 			xSemaphoreTake(LoadStateSem,portMAX_DELAY);
-//			LoadStates[0] = curswstates[0];
-//			LoadStates[1] = curswstates [1];
-//			LoadStates[2] = curswstates [2];
-//			LoadStates[3] = curswstates [3];
-//			LoadStates[4] = curswstates [4];
-//			curloadstates = LoadStates;
-
-			int i,j;
+			int i;
 			for (i=0;i<5;i++){
 				LoadStates[i] = curswstates[i];
-			}
-
-			for (j=0;j<5;j++){
-				curloadstates[j] = LoadStates[j];
+				curloadstates[i] = LoadStates[i];
 			}
 			xSemaphoreGive(LoadStateSem);
+			continue;
+		}
+		if(newnetstate == FLAG_HIGH){
+			loadManaging = FLAG_HIGH;
+		}
+		if(loadManaging == FLAG_LOW){
+			xSemaphoreTake(LoadStateSem,portMAX_DELAY);
+			int i;
+			for (i=0;i<5;i++){
+				LoadStates[i] = curswstates[i];
+				curloadstates[i] = LoadStates[i];
+			}
+			xSemaphoreGive(LoadStateSem);
+			continue;
 		}else{
-				if(curnetstate != newnetstate){
-					//Starts stability timer on network state change.
-					loadManaging = FLAG_HIGH;
-					xSemaphoreTake(FlagStableElapseSem, portMAX_DELAY);
-					flagStableElapse = FLAG_HIGH;
-					xSemaphoreGive(FlagStableElapseSem);
-				}
-				if(loadManaging == FLAG_HIGH){
-					//sem
-					xSemaphoreTake(ShedTimerSem,portMAX_DELAY);
-					xSemaphoreTake(FlagStableElapseSem, portMAX_DELAY);
-					if(flagStableElapse == FLAG_HIGH){
-						//timerlapsed
-						xSemaphoreGive(FlagStableElapseSem);
-						xSemaphoreGive(ShedTimerSem);
-						if(curnetstate == FLAG_LOW){
-							//stable - add new load
-							int x;
-							for(x = 4;x>=0;x--){
-								if((curswstates[x] == 1) &&(curloadstates[x] == 0)){
-									curloadstates[x] = 1;
-									target_load = x;
-									xSemaphoreTake(FlagStableElapseSem, portMAX_DELAY);
-									flagStableElapse = FLAG_LOW;
-									xSemaphoreGive(FlagStableElapseSem);
-									xTimerReset(stabilityTimerHandle,50);
-
-
-									break;
-								}
-							}
-						}else{
-							//unstable - shed
-							int x;
-							for(x = 0;x<5;x++){
-								if((curswstates[x] == 1) && (curloadstates[x] == 1)){
-									curloadstates[x] = 0;
-									target_load = x;
-									xSemaphoreTake(FlagStableElapseSem, portMAX_DELAY);
-									flagStableElapse = FLAG_LOW;
-									xSemaphoreGive(FlagStableElapseSem);
-									xTimerReset(stabilityTimerHandle,50);
-									xTimerStop(reactionTimerHandle,50);
-									break;
-								}
-							}
-						}
-						//check if all loads have been reestablished
-						if (curloadstates == curswstates){
-							loadManaging = FLAG_LOW;
-							xSemaphoreTake(FlagStableElapseSem, portMAX_DELAY);
-							flagStableElapse = FLAG_HIGH;
+			if(curnetstate != newnetstate){
+				xTimerReset(stabilityTimerHandle,50);
+				xSemaphoreTake(FlagStableElapseSem,portMAX_DELAY);
+				flagStableElapse = FLAG_LOW;
+				xSemaphoreGive(FlagStableElapseSem);
+			}
+			xSemaphoreTake(FlagStableElapseSem,portMAX_DELAY);
+			int stableelapse = flagStableElapse;
+			xSemaphoreGive(FlagStableElapseSem);
+			if(stableelapse == FLAG_HIGH){
+				if(curnetstate == FLAG_LOW){
+					//stable network
+					//addload
+					int i;
+					for(i = 4;i>=0;i--){
+						if(curloadstates[i] == 0 && curswstates[i] == 1){
+							target_load = i;
+							curloadstates[i] = 1;
+							xSemaphoreTake(FlagStableElapseSem,portMAX_DELAY);
+							flagStableElapse = FLAG_LOW;
 							xSemaphoreGive(FlagStableElapseSem);
+							xTimerReset(stabilityTimerHandle,50);
+							break;
 						}
-					}else{
-						xSemaphoreGive(FlagStableElapseSem);
-						if(TimerShed == FLAG_HIGH){
-							int x;
-							for(x = 0;x<5;x++){
-								if((curswstates[x] == 1) && (curloadstates[x] == 1)){
-									curloadstates[x] = 0;
-									target_load = x;
-									xTimerReset(stabilityTimerHandle,50);
-									xTimerStop(reactionTimerHandle,50);
-									break;
-								}
-							}
-							TimerShed = FLAG_LOW;
-						}
-						xSemaphoreGive(ShedTimerSem);
 					}
 				}else{
+					//unstable network
+					//shedload
 					int i;
-					for (i=0;i<5;i++){
-						curloadstates[i] = curswstates[i];
+					for(i = 0;i<5;i++){
+						if(curloadstates[i] == 1 && curswstates[i] == 1){
+							target_load = i;
+							curloadstates[i] = 0;
+							xSemaphoreTake(FlagStableElapseSem,portMAX_DELAY);
+							flagStableElapse = FLAG_LOW;
+							xSemaphoreGive(FlagStableElapseSem);
+							xTimerReset(stabilityTimerHandle,50);
+							xTimerStop(reactionTimerHandle,50);
+							xSemaphoreTake(ShedTimerSem,portMAX_DELAY);
+							TimerShed = FLAG_LOW;
+							xSemaphoreGive(ShedTimerSem);
+							break;
+						}
 					}
 				}
-				//update loadstates
-				xSemaphoreTake(LoadStateSem,portMAX_DELAY);
-//				LoadStates = curloadstates;
+			}
+			xSemaphoreTake(ShedTimerSem,portMAX_DELAY);
+			int locTimerShed = TimerShed;
+			xSemaphoreGive(ShedTimerSem);
+			if(locTimerShed == FLAG_HIGH){
 				int i;
-				for (i=0;i<5;i++){
-					LoadStates[i] = curloadstates[i];
+				for(i = 0;i<5;i++){
+					if(curloadstates[i] == 1 && curswstates[i] == 1){
+						target_load = i;
+						curloadstates[i] = 0;
+						xSemaphoreTake(FlagStableElapseSem,portMAX_DELAY);
+						flagStableElapse = FLAG_LOW;
+						xSemaphoreGive(FlagStableElapseSem);
+						xTimerReset(stabilityTimerHandle,50);
+						xTimerStop(reactionTimerHandle,50);
+						xSemaphoreTake(ShedTimerSem,portMAX_DELAY);
+						TimerShed = FLAG_LOW;
+						xSemaphoreGive(ShedTimerSem);
+						break;
+					}
 				}
-				xSemaphoreGive(LoadStateSem);
-				if (target_load != 999){
-					//send target load
-					xQueueSendToBack(ShedLoadQ,&target_load,pdFALSE);
-				}
+			}
 		}
+		if(curswstates == curloadstates){
+			loadManaging = FLAG_LOW;
+		}
+		//update and send queue
+		xSemaphoreTake(LoadStateSem,portMAX_DELAY);
+		int i;
+		for (i=0;i<5;i++){
+			LoadStates[i] = curloadstates[i];
+		}
+		xSemaphoreGive(LoadStateSem);
+		if(target_load != 999){
+			xQueueSendToBack(ShedLoadQ,&target_load,pdFALSE);
+		}
+		curnetstate = newnetstate;
 	}
 }
 
@@ -502,7 +498,7 @@ int main(void)
 			return 1;
 		}
 
-	ThresholdValue.roc = 15;
+	ThresholdValue.roc = 5;
 
 	alt_up_ps2_enable_read_interrupt(ps2_device);
 	alt_irq_register(PS2_IRQ, ps2_device, ps2_isr);
