@@ -122,7 +122,7 @@ void UserInputHandler()
 {
 	//Handles User keyboard input to change threshold values.
 	char keyboard_input;
-	unsigned int threshvalue = 30;
+	unsigned int threshvalue = 48;
 	while(1){
 		if (xQueueReceive(KeyboardInputQ,&keyboard_input,portMAX_DELAY) == pdTRUE){
 			if( keyboard_input == 'f'){
@@ -288,18 +288,21 @@ void Load_Controller ()
 			if(curnetstate != newnetstate){
 				xTimerReset(stabilityTimerHandle,50);
 				xSemaphoreTake(FlagStableElapseSem,portMAX_DELAY);
-				flagStableElapse = FLAG_LOW;
+//				flagStableElapse = FLAG_LOW;
 				xSemaphoreGive(FlagStableElapseSem);
 			}
 			xSemaphoreTake(FlagStableElapseSem,portMAX_DELAY);
 			int stableelapse = flagStableElapse;
 			xSemaphoreGive(FlagStableElapseSem);
+			printf("%i\n",stableelapse);
 			if(stableelapse == FLAG_HIGH){
+				printf("post stableelapse\n");
 				if(curnetstate == FLAG_LOW){
 					//stable network
 					//addload
 					int i;
 					for(i = 4;i>=0;i--){
+						printf("pre add load\n");
 						if(curloadstates[i] == 0 && curswstates[i] == 1){
 							printf("add load\n");
 							target_load = i;
@@ -317,6 +320,7 @@ void Load_Controller ()
 					//shedload
 					int i;
 					for(i = 0;i<5;i++){
+						printf("pre shed load\n");
 						if(curloadstates[i] == 1 && curswstates[i] == 1){
 							printf("shed load\n");
 							target_load = i;
@@ -502,7 +506,7 @@ int main(void)
 			return 1;
 		}
 
-	ThresholdValue.roc = 5;
+	ThresholdValue.roc = 10;
 
 	alt_up_ps2_enable_read_interrupt(ps2_device);
 	alt_irq_register(PS2_IRQ, ps2_device, ps2_isr);
