@@ -88,6 +88,11 @@ SemaphoreHandle_t MaintenanceStateSem;
 SemaphoreHandle_t LoadStateSem;
 SemaphoreHandle_t ShedTimerSem;
 SemaphoreHandle_t LoadManagerFinSem;
+SemaphoreHandle_t freqgetSem;
+SemaphoreHandle_t loadshedtimeSem;
+
+TickType_t freqget;
+TickType_t loadshedtime;
 
 //Frequency Analyser
 
@@ -97,6 +102,9 @@ void freq_relay(){
 	//temp contains Freq value
 	//printf("%f Hz\n", temp);
 	//Send to Queue
+	xSemaphoreTake(freqgetSem,portMAX_DELAY);
+	freqget = xTaskGetTickCountFromISR();
+	xSemaphoreGive(freqgetSem);
 	xQueueSendToBackFromISR(FrequencyUpdateQ,&temp,pdFALSE);
 }
 
@@ -455,6 +463,7 @@ void Output_Load()
 	//Outputs status of controller and loads, to LEDs, sends snapshot to UART
 	struct monitor_package freq_pack;
 	int shed_target;
+	int curfreqTickTime;
 	while(1){
 //		printf("output load 1\n");
 		if(xQueueReceive(MonitorOutputQ,&freq_pack,portMAX_DELAY) == pdTRUE){
@@ -462,6 +471,11 @@ void Output_Load()
 //			printf("roc: %f\n",freq_pack.roc);
 
 			redLEDs = 0x00000;
+			//add freq times
+			xSemaphoreTake(freqgetSem,portMAX_DELAY);
+			curfreqTickTime = freqget;
+			xSemaphoreGive(freqgetSem);
+
 
 //			printf("%i\n",LoadStates[0]);
 //			printf("%i\n",LoadStates[1]);
@@ -590,6 +604,7 @@ int main(void)
 	LoadStateSem = xSemaphoreCreateMutex();
 	ShedTimerSem = xSemaphoreCreateMutex();
 	LoadManagerFinSem = xSemaphoreCreateMutex();
+	freqgetSem = xSemaphoreCreateMutex();
 
 	/* The RegTest tasks as described at the top of this file. */
 	//xTaskCreate( prvFirstRegTestTask, "Rreg1", configMINIMAL_STACK_SIZE, mainREG_TEST_1_PARAMETER, mainREG_TEST_PRIORITY, NULL);
