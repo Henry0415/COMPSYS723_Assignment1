@@ -99,6 +99,11 @@ SemaphoreHandle_t MaintenanceStateSem;
 SemaphoreHandle_t LoadStateSem;
 SemaphoreHandle_t ShedTimerSem;
 SemaphoreHandle_t LoadManagerFinSem;
+SemaphoreHandle_t freqgetSem;
+SemaphoreHandle_t loadshedtimeSem;
+
+TickType_t freqget;
+TickType_t loadshedtime;
 
 //Frequency Analyser
 
@@ -108,19 +113,23 @@ void freq_relay(){
 	//temp contains Freq value
 	//printf("%f Hz\n", temp);
 	//Send to Queue
+	xSemaphoreTake(freqgetSem,portMAX_DELAY);
+	freqget = xTaskGetTickCountFromISR();
+	xSemaphoreGive(freqgetSem);
 	xQueueSendToBackFromISR(FrequencyUpdateQ,&temp,pdFALSE);
 }
 
-void push_buttonISR(){
+void push_buttonISR(void* context,alt_u32 id){
+
+	xSemaphoreTake(MaintenanceStateSem,portMAX_DELAY);
 	if(MaintenanceState == FLAG_HIGH){
-		xSemaphoreTake(MaintenanceStateSem,portMAX_DELAY);
+
 		MaintenanceState = FLAG_LOW;
-		xSemaphoreGive(MaintenanceStateSem);
 	}else{
-		xSemaphoreTake(MaintenanceStateSem,portMAX_DELAY);
 		MaintenanceState = FLAG_HIGH;
-		xSemaphoreGive(MaintenanceStateSem);
 	}
+	xSemaphoreGive(MaintenanceStateSem);
+	IOWR_ALTERA_AVALON_PIO_EDGE_CAP(PUSH_BUTTON_BASE, 0x7);
 }
 
 void switchPolling ()
@@ -465,10 +474,12 @@ void Output_Load()
 	//Outputs status of controller and loads, to LEDs, sends snapshot to UART
 	struct monitor_package freq_pack;
 	int shed_target;
-	int freq_temp;
+
 	int freq_new;
-	int roc_temp;
 	int roc_new;
+
+	int curfreqTickTime;
+
 	while(1){
 //		printf("output load 1\n");
 		if(xQueueReceive(MonitorOutputQ,&freq_pack,portMAX_DELAY) == pdTRUE){
@@ -504,6 +515,11 @@ void Output_Load()
 
 
 			redLEDs = 0x00000;
+			//add freq times
+			xSemaphoreTake(freqgetSem,portMAX_DELAY);
+			curfreqTickTime = freqget;
+			xSemaphoreGive(freqgetSem);
+
 
 //			printf("%i\n",LoadStates[0]);
 //			printf("%i\n",LoadStates[1]);
@@ -610,6 +626,9 @@ int main(void)
 	ThresholdValue.roc = 10;
 	ThresholdValue.freq = 48;
 
+
+	IOWR_ALTERA_AVALON_PIO_EDGE_CAP(PUSH_BUTTON_BASE, 0x7);
+	IOWR_ALTERA_AVALON_PIO_IRQ_MASK(PUSH_BUTTON_BASE, 0x7);
 	alt_up_ps2_enable_read_interrupt(ps2_device);
 	alt_irq_register(PS2_IRQ, ps2_device, ps2_isr);
 	alt_irq_register(FREQUENCY_ANALYSER_IRQ, 0, freq_relay);
@@ -629,6 +648,7 @@ int main(void)
 	LoadStateSem = xSemaphoreCreateMutex();
 	ShedTimerSem = xSemaphoreCreateMutex();
 	LoadManagerFinSem = xSemaphoreCreateMutex();
+	freqgetSem = xSemaphoreCreateMutex();
 
 	/* The RegTest tasks as described at the top of this file. */
 	//xTaskCreate( prvFirstRegTestTask, "Rreg1", configMINIMAL_STACK_SIZE, mainREG_TEST_1_PARAMETER, mainREG_TEST_PRIORITY, NULL);
