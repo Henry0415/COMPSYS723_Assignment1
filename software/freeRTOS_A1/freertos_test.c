@@ -262,12 +262,12 @@ void Load_Controller ()
 		//WHEN target_load = 999, NO TARGET TO SEND
 		target_load = 999;
 
-		/*int i;
-		for (i=0;i<5;i++){
-			if(curswstates[i] == 0){
-			curloadstates[i]= 0;
+		int j;
+		for (j=0;j<5;j++){
+			if(curswstates[j] == 0){
+			curloadstates[j]= 0;
 			}
-		}*/
+		}
 
 		if(MFlag == FLAG_HIGH){
 			xSemaphoreTake(LoadStateSem,portMAX_DELAY);
