@@ -284,6 +284,7 @@ void Load_Controller ()
 			xSemaphoreGive(LoadStateSem);
 			continue;
 		}else{
+			printf("load_managing begin\n");
 			if(curnetstate != newnetstate){
 				xTimerReset(stabilityTimerHandle,50);
 				xSemaphoreTake(FlagStableElapseSem,portMAX_DELAY);
@@ -300,6 +301,7 @@ void Load_Controller ()
 					int i;
 					for(i = 4;i>=0;i--){
 						if(curloadstates[i] == 0 && curswstates[i] == 1){
+							printf("add load\n");
 							target_load = i;
 							curloadstates[i] = 1;
 							xSemaphoreTake(FlagStableElapseSem,portMAX_DELAY);
@@ -310,11 +312,13 @@ void Load_Controller ()
 						}
 					}
 				}else{
+
 					//unstable network
 					//shedload
 					int i;
 					for(i = 0;i<5;i++){
 						if(curloadstates[i] == 1 && curswstates[i] == 1){
+							printf("shed load\n");
 							target_load = i;
 							curloadstates[i] = 0;
 							xSemaphoreTake(FlagStableElapseSem,portMAX_DELAY);
