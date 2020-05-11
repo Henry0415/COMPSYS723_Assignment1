@@ -418,17 +418,19 @@ void Output_Load()
 			printf("%i\n",LoadStates[3]);
 			printf("%i\n",LoadStates[4]);
 
-			redLED0 = (LoadStates[0] & 0x01);
-			redLED1 = (LoadStates[1] & 0x02);
-			redLED2 = (LoadStates[2] & 0x04);
-			redLED3 = (LoadStates[3] & 0x08);
-			redLED4 = (LoadStates[4] & 0x10);
+			redLED0 = (LoadStates[0] << 0);
+			redLED1 = (LoadStates[1] << 1);
+			redLED2 = (LoadStates[2] << 2);
+			redLED3 = (LoadStates[3] << 3);
+			redLED4 = (LoadStates[4] << 4);
 
 			redLEDs = redLEDs | redLED0;
 			redLEDs = redLEDs | redLED1;
 			redLEDs = redLEDs | redLED2;
 			redLEDs = redLEDs | redLED3;
 			redLEDs = redLEDs | redLED4;
+//			redLEDs = 0xFFFFF;
+			IOWR_ALTERA_AVALON_PIO_DATA(RED_LEDS_BASE,redLEDs);
 		}
 
 		if(xQueueReceive(ShedLoadQ, &shed_target, 2) == pdTRUE){
@@ -496,7 +498,7 @@ void Output_Load()
 		}
 
 
-		IOWR_ALTERA_AVALON_PIO_DATA(RED_LEDS_BASE,redLEDs);
+//		IOWR_ALTERA_AVALON_PIO_DATA(RED_LEDS_BASE,redLEDs);
 		IOWR_ALTERA_AVALON_PIO_DATA(GREEN_LEDS_BASE,greenLEDs);
 	}
 
@@ -513,6 +515,7 @@ int main(void)
 		}
 
 	ThresholdValue.roc = 10;
+	ThresholdValue.freq = 48;
 
 	alt_up_ps2_enable_read_interrupt(ps2_device);
 	alt_irq_register(PS2_IRQ, ps2_device, ps2_isr);
