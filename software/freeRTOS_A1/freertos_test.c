@@ -283,6 +283,9 @@ void Load_Controller ()
 				if(curnetstate != newnetstate){
 					//Starts stability timer on network state change.
 					loadManaging = FLAG_HIGH;
+					xSemaphoreTake(FlagStableElapseSem, portMAX_DELAY);
+					flagStableElapse = FLAG_HIGH;
+					xSemaphoreGive(FlagStableElapseSem);
 				}
 				if(loadManaging == FLAG_HIGH){
 					//sem
@@ -327,6 +330,9 @@ void Load_Controller ()
 						//check if all loads have been reestablished
 						if (curloadstates == curswstates){
 							loadManaging = FLAG_LOW;
+							xSemaphoreTake(FlagStableElapseSem, portMAX_DELAY);
+							flagStableElapse = FLAG_HIGH;
+							xSemaphoreGive(FlagStableElapseSem);
 						}
 					}else{
 						xSemaphoreGive(FlagStableElapseSem);
