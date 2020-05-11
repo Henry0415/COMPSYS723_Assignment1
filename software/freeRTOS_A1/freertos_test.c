@@ -12,7 +12,7 @@
 #include "altera_up_avalon_ps2.h"
 #include "altera_avalon_pio_regs.h"
 #include "altera_up_avalon_ps2.h"
-
+#include "altera_up_ps2_keyboard.h"
 /* Scheduler includes. */
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -224,9 +224,24 @@ void Monitor_Frequency()
 }
 
 void ps2_isr(void* ps2_device, alt_u32 id){
-	unsigned char byte;
-	alt_up_ps2_read_data_byte_timeout(ps2_device, &byte);
-	xQueueSendToBackFromISR(KeyboardInputQ,&byte,pdFALSE);
+	  char ascii;
+	  int status = 0;
+	  unsigned char key = 0;
+	  KB_CODE_TYPE decode_mode;
+	  status = decode_scancode (context, &decode_mode , &key , &ascii) ;
+	  if ( status == 0 ) //success
+	  {
+	    // print out the result
+	    switch ( decode_mode )
+	    {
+	      case KB_ASCII_MAKE_CODE :
+	    	  xQueueSendToBackFromISR(KeyboardInputQ,&ascii,pdFALSE);
+	        break ;
+	      default :
+	        break ;
+	    }
+	  }
+
 }
 
 void stableElapse(stabilityTimerHandle)
