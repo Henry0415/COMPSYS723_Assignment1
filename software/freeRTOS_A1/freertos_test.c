@@ -119,67 +119,67 @@ void switchPolling ()
 	}
 }
 
-//void UserInputHandler()
-//{
-//	//Handles User keyboard input to change threshold values.
-//	unsigned char keyboard_input;
-//	unsigned int threshvalue = 0;
-//	int debounce;
-//	while(1){
-//		threshvalue = 0;
-//		if (xQueueReceive(KeyboardInputQ,&keyboard_input,2) == pdTRUE){
+void UserInputHandler()
+{
+	//Handles User keyboard input to change threshold values.
+	unsigned char keyboard_input;
+	unsigned int threshvalue = 0;
+	int debounce;
+	while(1){
+		threshvalue = 0;
+		if (xQueueReceive(KeyboardInputQ,&keyboard_input,2) == pdTRUE){
 //			printf("received");
 //			printf("%i\n",keyboard_input);
-//			if( keyboard_input == 'F'){
-//				while(keyboard_input != '\n'){
+			if( keyboard_input == 'F'){
+				while(keyboard_input != '\n'){
 //					printf("f1");
 //					printf("%i\n",keyboard_input);
-//					if(xQueueReceive(KeyboardInputQ,&keyboard_input,portMAX_DELAY) == pdTRUE){
+					if(xQueueReceive(KeyboardInputQ,&keyboard_input,portMAX_DELAY) == pdTRUE){
 //						printf("f2");
-//						if((keyboard_input<58)&&(keyboard_input>47)){
-//							if((debounce%2) == 0){
-//								threshvalue = (threshvalue*10) + keyboard_input - '0';
-//								debounce++;
+						if((keyboard_input<58)&&(keyboard_input>47)){
+							if((debounce%2) == 0){
+								threshvalue = (threshvalue*10) + keyboard_input - '0';
+								debounce++;
 //								printf("%u\n",threshvalue);
-//							}
-//							else {
-//								debounce = 0;
-//							}
-//						}
-//					}
-//				}
-//				xSemaphoreTake(ThresholdValueSem,portMAX_DELAY);
-//				ThresholdValue.freq = threshvalue;
-//				xSemaphoreGive(ThresholdValueSem);
-//			}else if (keyboard_input == 'R'){
-//				while(keyboard_input != '\n'){
+							}
+							else {
+								debounce = 0;
+							}
+						}
+					}
+				}
+				xSemaphoreTake(ThresholdValueSem,portMAX_DELAY);
+				ThresholdValue.freq = threshvalue;
+				xSemaphoreGive(ThresholdValueSem);
+			}else if (keyboard_input == 'R'){
+				while(keyboard_input != '\n'){
 //					printf("f1");
 //					printf("%i\n",keyboard_input);
-//					if(xQueueReceive(KeyboardInputQ,&keyboard_input,portMAX_DELAY) == pdTRUE){
+					if(xQueueReceive(KeyboardInputQ,&keyboard_input,portMAX_DELAY) == pdTRUE){
 //						printf("f2");
-//						if((keyboard_input<58)&&(keyboard_input>47)){
-//							if((debounce%2) == 0){
-//								threshvalue = (threshvalue*10) + keyboard_input - '0';
-//								debounce++;
+						if((keyboard_input<58)&&(keyboard_input>47)){
+							if((debounce%2) == 0){
+								threshvalue = (threshvalue*10) + keyboard_input - '0';
+								debounce++;
 //								printf("%u\n",threshvalue);
-//							}
-//							else {
-//								debounce = 0;
-//							}
-//						}
-//					}
-//				}
-//			xSemaphoreTake(ThresholdValueSem,portMAX_DELAY);
-//			ThresholdValue.roc = threshvalue;
-//			xSemaphoreGive(ThresholdValueSem);
-//			}
-//		}
-//		xSemaphoreTake(ThresholdValueSem,portMAX_DELAY);
-//		printf("%f\n",ThresholdValue.freq);
-//		printf("%f\n",ThresholdValue.roc);
-//		xSemaphoreGive(ThresholdValueSem);
-//	}
-//}
+							}
+							else {
+								debounce = 0;
+							}
+						}
+					}
+				}
+			xSemaphoreTake(ThresholdValueSem,portMAX_DELAY);
+			ThresholdValue.roc = threshvalue;
+			xSemaphoreGive(ThresholdValueSem);
+			}
+		}
+		xSemaphoreTake(ThresholdValueSem,portMAX_DELAY);
+		printf("*******************%f\n",ThresholdValue.freq);
+		printf("*******************%f\n",ThresholdValue.roc);
+		xSemaphoreGive(ThresholdValueSem);
+	}
+}
 
 void Monitor_Frequency()
 {
@@ -241,31 +241,31 @@ void Monitor_Frequency()
 
 }
 
-//void ps2_isr(void* ps2_device, alt_u32 id){
-//	  char ascii;
-//	  int status = 0;
-//	  unsigned char key = 0;
-//	  KB_CODE_TYPE decode_mode;
-//	  status = decode_scancode (ps2_device, &decode_mode , &key , &ascii) ;
-//	  if(key == 0x5A){
-//		  ascii = '\n';
+void ps2_isr(void* ps2_device, alt_u32 id){
+	  char ascii;
+	  int status = 0;
+	  unsigned char key = 0;
+	  KB_CODE_TYPE decode_mode;
+	  status = decode_scancode (ps2_device, &decode_mode , &key , &ascii) ;
+	  if(key == 0x5A){
+		  ascii = '\n';
+	  }
+
+//	  if ( status == 0 ) //success
+//	  {
+	    // print out the result
+	    switch ( decode_mode )
+	    {
+	      case KB_ASCII_MAKE_CODE :
+	      case KB_BINARY_MAKE_CODE:
+	    	  xQueueSendToBackFromISR(KeyboardInputQ,&ascii,pdFALSE);
+	    	break ;
+	      default :
+	        break ;
+	    }
 //	  }
-//
-////	  if ( status == 0 ) //success
-////	  {
-//	    // print out the result
-//	    switch ( decode_mode )
-//	    {
-//	      case KB_ASCII_MAKE_CODE :
-//	      case KB_BINARY_MAKE_CODE:
-//	    	  xQueueSendToBackFromISR(KeyboardInputQ,&ascii,pdFALSE);
-//	    	break ;
-//	      default :
-//	        break ;
-//	    }
-////	  }
-//
-//}
+
+}
 
 void stableElapse(stabilityTimerHandle)
 {
@@ -553,17 +553,17 @@ void Output_Load()
 int main(void)
 {
 
-//	alt_up_ps2_dev * ps2_device = alt_up_ps2_open_dev(PS2_NAME);
+	alt_up_ps2_dev * ps2_device = alt_up_ps2_open_dev(PS2_NAME);
 
-//		if(ps2_device == NULL){
-//			printf("can't find PS/2 device\n");
-//			return 1;
-//		}
+		if(ps2_device == NULL){
+			printf("can't find PS/2 device\n");
+			return 1;
+		}
 
 	ThresholdValue.roc = 10;
-	ThresholdValue.freq = 49;
+	ThresholdValue.freq = 48;
 
-//	alt_up_ps2_enable_read_interrupt(ps2_device);
+	alt_up_ps2_enable_read_interrupt(ps2_device);
 //	alt_irq_register(PS2_IRQ, ps2_device, ps2_isr);
 	alt_irq_register(FREQUENCY_ANALYSER_IRQ, 0, freq_relay);
 	alt_irq_register(PUSH_BUTTON_IRQ,0,push_buttonISR);
@@ -592,7 +592,7 @@ int main(void)
 	xTaskCreate(Output_Load,"out_load",configMINIMAL_STACK_SIZE,NULL,2,2);
 	xTaskCreate(switchPolling,"switch_poll",configMINIMAL_STACK_SIZE,NULL,1,1);
 	xTaskCreate(Load_Controller,"load_control",configMINIMAL_STACK_SIZE,NULL,3,3);
-//	xTaskCreate(UserInputHandler,"userinput",configMINIMAL_STACK_SIZE,NULL,1,NULL);
+	xTaskCreate(UserInputHandler,"userinput",configMINIMAL_STACK_SIZE,NULL,1,NULL);
 	//create timers
 	stabilityTimerHandle = xTimerCreate("Stability Timer",pdMS_TO_TICKS(500),pdTRUE,(void *) 0,stableElapse);
 	reactionTimerHandle = xTimerCreate("Reaction Timer",pdMS_TO_TICKS(200),pdFALSE,(void *) 0,reactionElapse);
