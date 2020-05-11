@@ -122,37 +122,55 @@ void switchPolling ()
 void UserInputHandler()
 {
 	//Handles User keyboard input to change threshold values.
-	char keyboard_input;
-	unsigned int threshvalue = 48;
+	unsigned char keyboard_input;
+	unsigned int threshvalue = 0;
+	int debounce;
 	while(1){
+		threshvalue = 0;
 		if (xQueueReceive(KeyboardInputQ,&keyboard_input,2) == pdTRUE){
-			if( keyboard_input == 'f'){
+			printf("received");
+			printf("%i\n",keyboard_input);
+			if( keyboard_input == 'F'){
 				while(keyboard_input != '\n'){
-					printf("f1\n");
+					printf("f1");
+					printf("%i\n",keyboard_input);
 					if(xQueueReceive(KeyboardInputQ,&keyboard_input,portMAX_DELAY) == pdTRUE){
-						printf("f2\n");
+						printf("f2");
 						if((keyboard_input<58)&&(keyboard_input>47)){
-						threshvalue = threshvalue + keyboard_input - '0';
-						threshvalue = threshvalue*10;
+							if((debounce%2) == 0){
+								threshvalue = (threshvalue*10) + keyboard_input - '0';
+								debounce++;
+								printf("%u\n",threshvalue);
+							}
+							else {
+								debounce = 0;
+							}
 						}
 					}
 				}
 				xSemaphoreTake(ThresholdValueSem,portMAX_DELAY);
 				ThresholdValue.freq = threshvalue;
 				xSemaphoreGive(ThresholdValueSem);
-			}else if (keyboard_input == 'r'){
+			}else if (keyboard_input == 'R'){
 				while(keyboard_input != '\n'){
-					printf("r1\n");
+					printf("f1");
+					printf("%i\n",keyboard_input);
 					if(xQueueReceive(KeyboardInputQ,&keyboard_input,portMAX_DELAY) == pdTRUE){
-						printf("r2\n");
+						printf("f2");
 						if((keyboard_input<58)&&(keyboard_input>47)){
-							threshvalue = threshvalue + keyboard_input - '0';
-							threshvalue = threshvalue*10;
+							if((debounce%2) == 0){
+								threshvalue = (threshvalue*10) + keyboard_input - '0';
+								debounce++;
+								printf("%u\n",threshvalue);
+							}
+							else {
+								debounce = 0;
+							}
 						}
 					}
 				}
 			xSemaphoreTake(ThresholdValueSem,portMAX_DELAY);
-			ThresholdValue.freq = threshvalue;
+			ThresholdValue.roc = threshvalue;
 			xSemaphoreGive(ThresholdValueSem);
 			}
 		}
@@ -228,19 +246,24 @@ void ps2_isr(void* ps2_device, alt_u32 id){
 	  int status = 0;
 	  unsigned char key = 0;
 	  KB_CODE_TYPE decode_mode;
-	  status = decode_scancode (context, &decode_mode , &key , &ascii) ;
-	  if ( status == 0 ) //success
-	  {
+	  status = decode_scancode (ps2_device, &decode_mode , &key , &ascii) ;
+	  if(key == 0x5A){
+		  ascii = '\n';
+	  }
+
+//	  if ( status == 0 ) //success
+//	  {
 	    // print out the result
 	    switch ( decode_mode )
 	    {
 	      case KB_ASCII_MAKE_CODE :
+	      case KB_BINARY_MAKE_CODE:
 	    	  xQueueSendToBackFromISR(KeyboardInputQ,&ascii,pdFALSE);
-	        break ;
+	    	break ;
 	      default :
 	        break ;
 	    }
-	  }
+//	  }
 
 }
 
