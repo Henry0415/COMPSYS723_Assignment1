@@ -152,6 +152,10 @@ void UserInputHandler()
 			xSemaphoreGive(ThresholdValueSem);
 			}
 		}
+		xSemaphoreTake(ThresholdValueSem,portMAX_DELAY);
+		printf("%f\n",ThresholdValue.freq);
+		printf("%f\n",ThresholdValue.roc);
+		xSemaphoreGive(ThresholdValueSem);
 	}
 }
 
@@ -542,11 +546,11 @@ int main(void)
 	//xTaskCreate( prvSecondRegTestTask, "Rreg2", configMINIMAL_STACK_SIZE, mainREG_TEST_2_PARAMETER, mainREG_TEST_PRIORITY, NULL);
 
 	//create tasks
-	xTaskCreate(Monitor_Frequency, "monfreq", configMINIMAL_STACK_SIZE,NULL,4,4);
-	xTaskCreate(Output_Load,"out_load",configMINIMAL_STACK_SIZE,NULL,2,2);
-	xTaskCreate(switchPolling,"switch_poll",configMINIMAL_STACK_SIZE,NULL,1,1);
-	xTaskCreate(Load_Controller,"load_control",configMINIMAL_STACK_SIZE,NULL,3,3);
-
+	//xTaskCreate(Monitor_Frequency, "monfreq", configMINIMAL_STACK_SIZE,NULL,4,4);
+	//xTaskCreate(Output_Load,"out_load",configMINIMAL_STACK_SIZE,NULL,2,2);
+	//xTaskCreate(switchPolling,"switch_poll",configMINIMAL_STACK_SIZE,NULL,1,1);
+	//xTaskCreate(Load_Controller,"load_control",configMINIMAL_STACK_SIZE,NULL,3,3);
+	xTaskCreate(UserInputHandler,"userinput",configMINIMAL_STACK_SIZE,NULL,1,NULL);
 	//create timers
 	stabilityTimerHandle = xTimerCreate("Stability Timer",pdMS_TO_TICKS(500),pdTRUE,(void *) 0,stableElapse);
 	reactionTimerHandle = xTimerCreate("Reaction Timer",pdMS_TO_TICKS(200),pdFALSE,(void *) 0,reactionElapse);
