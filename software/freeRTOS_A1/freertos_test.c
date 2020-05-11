@@ -100,16 +100,17 @@ void freq_relay(){
 	xQueueSendToBackFromISR(FrequencyUpdateQ,&temp,pdFALSE);
 }
 
-void push_buttonISR(){
+void push_buttonISR(void* context,alt_u32 id){
+
+	xSemaphoreTake(MaintenanceStateSem,portMAX_DELAY);
 	if(MaintenanceState == FLAG_HIGH){
-		xSemaphoreTake(MaintenanceStateSem,portMAX_DELAY);
+
 		MaintenanceState = FLAG_LOW;
-		xSemaphoreGive(MaintenanceStateSem);
 	}else{
-		xSemaphoreTake(MaintenanceStateSem,portMAX_DELAY);
 		MaintenanceState = FLAG_HIGH;
-		xSemaphoreGive(MaintenanceStateSem);
 	}
+	xSemaphoreGive(MaintenanceStateSem);
+	IOWR_ALTERA_AVALON_PIO_EDGE_CAP(PUSH_BUTTON_BASE, 0x7);
 }
 
 void switchPolling ()
@@ -567,6 +568,9 @@ int main(void)
 	ThresholdValue.roc = 10;
 	ThresholdValue.freq = 48;
 
+
+	IOWR_ALTERA_AVALON_PIO_EDGE_CAP(PUSH_BUTTON_BASE, 0x7);
+	IOWR_ALTERA_AVALON_PIO_IRQ_MASK(PUSH_BUTTON_BASE, 0x7);
 	alt_up_ps2_enable_read_interrupt(ps2_device);
 	alt_irq_register(PS2_IRQ, ps2_device, ps2_isr);
 	alt_irq_register(FREQUENCY_ANALYSER_IRQ, 0, freq_relay);
