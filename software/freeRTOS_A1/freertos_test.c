@@ -49,7 +49,6 @@ struct monitor_package{
 struct thresholdval ThresholdValue;
 
 int flagStableElapse;
-//int SwitchState[5];
 int redLEDs;
 int redLED0;
 int redLED1;
@@ -81,8 +80,6 @@ int TimerShed = 0;
 int switchValues;
 int loadManageFin = 1;
 
-
-
 TimerHandle_t stabilityTimerHandle;
 TimerHandle_t reactionTimerHandle;
 
@@ -99,23 +96,15 @@ SemaphoreHandle_t MaintenanceStateSem;
 SemaphoreHandle_t LoadStateSem;
 SemaphoreHandle_t ShedTimerSem;
 SemaphoreHandle_t LoadManagerFinSem;
-//SemaphoreHandle_t freqgetSem;
 SemaphoreHandle_t loadshedtimeSem;
 
-//TickType_t freqget;
-//TickType_t loadshedtime;
 
 //Frequency Analyser
 
 void freq_relay(){
 
 	double temp =  (double)IORD(FREQUENCY_ANALYSER_BASE, 0);
-	//temp contains Freq value
-	//printf("%f Hz\n", temp);
 	//Send to Queue
-//	xSemaphoreTake(freqgetSem,portMAX_DELAY);
-//	freqget = xTaskGetTickCountFromISR();
-//	xSemaphoreGive(freqgetSem);
 	xQueueSendToBackFromISR(FrequencyUpdateQ,&temp,pdFALSE);
 }
 
@@ -152,19 +141,13 @@ void UserInputHandler()
 	while(1){
 		threshvalue = 0;
 		if (xQueueReceive(KeyboardInputQ,&keyboard_input,2) == pdTRUE){
-//			printf("received");
-//			printf("%i\n",keyboard_input);
 			if( keyboard_input == 'F'){
 				while(keyboard_input != '\n'){
-//					printf("f1");
-//					printf("%i\n",keyboard_input);
 					if(xQueueReceive(KeyboardInputQ,&keyboard_input,portMAX_DELAY) == pdTRUE){
-//						printf("f2");
 						if((keyboard_input<58)&&(keyboard_input>47)){
 							if((debounce%2) == 0){
 								threshvalue = (threshvalue*10) + keyboard_input - '0';
 								debounce++;
-//								printf("%u\n",threshvalue);
 							}
 							else {
 								debounce = 0;
@@ -177,15 +160,11 @@ void UserInputHandler()
 				xSemaphoreGive(ThresholdValueSem);
 			}else if (keyboard_input == 'R'){
 				while(keyboard_input != '\n'){
-//					printf("f1");
-//					printf("%i\n",keyboard_input);
 					if(xQueueReceive(KeyboardInputQ,&keyboard_input,portMAX_DELAY) == pdTRUE){
-//						printf("f2");
 						if((keyboard_input<58)&&(keyboard_input>47)){
 							if((debounce%2) == 0){
 								threshvalue = (threshvalue*10) + keyboard_input - '0';
 								debounce++;
-//								printf("%u\n",threshvalue);
 							}
 							else {
 								debounce = 0;
@@ -199,8 +178,6 @@ void UserInputHandler()
 			}
 		}
 		xSemaphoreTake(ThresholdValueSem,portMAX_DELAY);
-//		printf("*******************%f\n",ThresholdValue.freq);
-//		printf("*******************%f\n",ThresholdValue.roc);
 		xSemaphoreGive(ThresholdValueSem);
 	}
 }
@@ -218,7 +195,6 @@ void Monitor_Frequency()
 	struct thresholdval tv;
 	while (1){
 		if(xQueueReceive(FrequencyUpdateQ,&period,portMAX_DELAY) == pdTRUE){
-//			printf("monitor freq 3\n");
 			freq = SAMPLING_FREQ/period;
 			if(prev_freq == 0){
 				prev_freq = freq;
@@ -228,11 +204,6 @@ void Monitor_Frequency()
 
 			qbody.cur_freq = freq;
 			qbody.roc = roc;
-//			printf("%f\n",freq);
-//			printf("%f\n", prev_freq);
-//			printf("%f\n", period);
-//			printf("%f\n", roc);
-//			printf("monitor freq 4\n");
 			xQueueSendToBack(MonitorOutputQ,&qbody,pdFALSE);
 			prev_freq = freq;
 			xSemaphoreTake(ThresholdValueSem, portMAX_DELAY);
@@ -257,12 +228,7 @@ void Monitor_Frequency()
 
 			xQueueSendToBack(FreqStateQ,&unstable,pdFALSE);
 		}
-
 	}
-
-
-
-
 }
 
 void ps2_isr(void* ps2_device, alt_u32 id){
@@ -275,8 +241,6 @@ void ps2_isr(void* ps2_device, alt_u32 id){
 		  ascii = '\n';
 	  }
 
-//	  if ( status == 0 ) //success
-//	  {
 	    // print out the result
 	    switch ( decode_mode )
 	    {
@@ -287,8 +251,6 @@ void ps2_isr(void* ps2_device, alt_u32 id){
 	      default :
 	        break ;
 	    }
-//	  }
-
 }
 
 void stableElapse(stabilityTimerHandle)
@@ -315,9 +277,7 @@ void Load_Controller ()
 	//Changes the load as requested
 	//Checks the state of the switches and MaintenanceState flag before changing the load.
 	while(1){
-//		printf("load controller 1\n");
 		xSemaphoreTake(SwitchStatesSem,portMAX_DELAY);
-//		curswstates = SwitchState;
 		curswstates[0] = SwitchState & 0x01;
 		curswstates[1] = (SwitchState & 0x02)>>1;
 		curswstates[2] = (SwitchState & 0x04)>>2;
@@ -362,27 +322,21 @@ void Load_Controller ()
 			xSemaphoreGive(LoadStateSem);
 			continue;
 		}else{
-//			printf("load_managing begin\n");
 			if(curnetstate != newnetstate){
 				xTimerReset(stabilityTimerHandle,50);
 				xSemaphoreTake(FlagStableElapseSem,portMAX_DELAY);
-//				flagStableElapse = FLAG_LOW;
 				xSemaphoreGive(FlagStableElapseSem);
 			}
 			xSemaphoreTake(FlagStableElapseSem,portMAX_DELAY);
 			int stableelapse = flagStableElapse;
 			xSemaphoreGive(FlagStableElapseSem);
-//			printf("%i\n",stableelapse);
 			if(stableelapse == FLAG_HIGH){
-//				printf("post stableelapse\n");
 				if(curnetstate == FLAG_LOW){
 					//stable network
 					//addload
 					int i;
 					for(i = 4;i>=0;i--){
-//						printf("pre add load\n");
 						if(curloadstates[i] == 0 && curswstates[i] == 1){
-//							printf("add load\n");
 							target_load = i;
 							curloadstates[i] = 1;
 							xSemaphoreTake(FlagStableElapseSem,portMAX_DELAY);
@@ -393,14 +347,11 @@ void Load_Controller ()
 						}
 					}
 				}else{
-
 					//unstable network
 					//shedload
 					int i;
 					for(i = 0;i<5;i++){
-//						printf("pre shed load\n");
 						if(curloadstates[i] == 1 && curswstates[i] == 1){
-//							printf("shed load\n");
 							target_load = i;
 							curloadstates[i] = 0;
 							xSemaphoreTake(FlagStableElapseSem,portMAX_DELAY);
@@ -462,7 +413,6 @@ void Load_Controller ()
 void reactionElapse(reactionTimerHandle)
 {
 	//called by reaction timer when timer expires
-	//adds timer value to the queue maybe
 	xSemaphoreTake(ShedTimerSem,portMAX_DELAY);
 	TimerShed = FLAG_HIGH;
 	xSemaphoreGive(ShedTimerSem);
@@ -474,17 +424,12 @@ void Output_Load()
 	//Outputs status of controller and loads, to LEDs, sends snapshot to UART
 	struct monitor_package freq_pack;
 	int shed_target;
-
 	int freq_new;
 	int roc_new;
-
-	int curfreqTickTime;
+//	int curfreqTickTime;
 
 	while(1){
-//		printf("output load 1\n");
 		if(xQueueReceive(MonitorOutputQ,&freq_pack,portMAX_DELAY) == pdTRUE){
-//			printf("freq: %f\n",freq_pack.cur_freq);
-//			printf("roc: %f\n",freq_pack.roc);
 			freq_new = freq_pack.cur_freq;
 			roc_new = freq_pack.roc;
 
@@ -515,17 +460,6 @@ void Output_Load()
 
 
 			redLEDs = 0x00000;
-			//add freq times
-//			xSemaphoreTake(freqgetSem,portMAX_DELAY);
-//			curfreqTickTime = freqget;
-//			xSemaphoreGive(freqgetSem);
-
-
-//			printf("%i\n",LoadStates[0]);
-//			printf("%i\n",LoadStates[1]);
-//			printf("%i\n",LoadStates[2]);
-//			printf("%i\n",LoadStates[3]);
-//			printf("%i\n",LoadStates[4]);
 
 			redLED0 = (LoadStates[0] << 0);
 			redLED1 = (LoadStates[1] << 1);
@@ -538,13 +472,10 @@ void Output_Load()
 			redLEDs = redLEDs | redLED2;
 			redLEDs = redLEDs | redLED3;
 			redLEDs = redLEDs | redLED4;
-//			redLEDs = 0xFFFFF;
 			IOWR_ALTERA_AVALON_PIO_DATA(RED_LEDS_BASE,redLEDs);
 		}
 
 		if(xQueueReceive(ShedLoadQ, &shed_target, 2) == pdTRUE){
-//			printf("load shed");
-
 			greenLEDs = 0x00;
 
 			if(shed_target == 0){
@@ -552,9 +483,7 @@ void Output_Load()
 					greenLED0 = FLAG_HIGH;
 				}else{
 					greenLED0 = FLAG_LOW;
-//					redLED0 = 0;
 				}
-//				printf("load 1");
 			}
 
 			if(shed_target == 1){
@@ -562,18 +491,15 @@ void Output_Load()
 					greenLED1 = FLAG_HIGH;
 				}else{
 					greenLED1 = FLAG_LOW;
-//					redLED1 = 0;
 				}
-//				printf("load 2");
 			}
+
 			if(shed_target == 2){
 				if(redLED2 == FLAG_LOW){
 					greenLED2 = FLAG_HIGH;
 				}else{
 					greenLED2 = FLAG_LOW;
-//					redLED2 = 0;
 				}
-//				printf("load 3");
 			}
 
 			if(shed_target == 3){
@@ -581,9 +507,7 @@ void Output_Load()
 					greenLED3 = FLAG_HIGH;
 				}else{
 					greenLED3 = FLAG_LOW;
-//					redLED3 = 0;
 				}
-//				printf("load 4");
 			}
 
 			if(shed_target == 4){
@@ -591,9 +515,7 @@ void Output_Load()
 					greenLED4 = FLAG_HIGH;
 				}else{
 					greenLED4 = FLAG_LOW;
-//					redLED4 = 0;
 				}
-//				printf("load 5");
 			}
 
 			greenLEDs = greenLEDs | (greenLED0 << 0);
@@ -601,16 +523,9 @@ void Output_Load()
 			greenLEDs = greenLEDs | (greenLED2 << 2);
 			greenLEDs = greenLEDs | (greenLED3 << 3);
 			greenLEDs = greenLEDs | (greenLED4 << 4);
-
-//			IOWR_ALTERA_AVALON_PIO_DATA(GREEN_LEDS_BASE,0x00);
-
 		}
-
-
-//		IOWR_ALTERA_AVALON_PIO_DATA(RED_LEDS_BASE,redLEDs);
 		IOWR_ALTERA_AVALON_PIO_DATA(GREEN_LEDS_BASE,greenLEDs);
 	}
-
 }
 
 int main(void)
@@ -622,13 +537,13 @@ int main(void)
 			printf("can't find PS/2 device\n");
 			return 1;
 		}
-
+	// Set default thresholds
 	ThresholdValue.roc = 10;
-	ThresholdValue.freq = 48;
-
+	ThresholdValue.freq = 49;
 
 	IOWR_ALTERA_AVALON_PIO_EDGE_CAP(PUSH_BUTTON_BASE, 0x7);
 	IOWR_ALTERA_AVALON_PIO_IRQ_MASK(PUSH_BUTTON_BASE, 0x7);
+
 	alt_up_ps2_enable_read_interrupt(ps2_device);
 	alt_irq_register(PS2_IRQ, ps2_device, ps2_isr);
 	alt_irq_register(FREQUENCY_ANALYSER_IRQ, 0, freq_relay);
@@ -641,6 +556,7 @@ int main(void)
 	ShedLoadQ = xQueueCreate(100, sizeof(int));
 	FreqStateQ = xQueueCreate(100, sizeof(int));
 
+	//Semaphore creation
 	ThresholdValueSem = xSemaphoreCreateMutex();
 	FlagStableElapseSem = xSemaphoreCreateMutex();
 	SwitchStatesSem = xSemaphoreCreateMutex();
@@ -648,11 +564,6 @@ int main(void)
 	LoadStateSem = xSemaphoreCreateMutex();
 	ShedTimerSem = xSemaphoreCreateMutex();
 	LoadManagerFinSem = xSemaphoreCreateMutex();
-//	freqgetSem = xSemaphoreCreateMutex();
-
-	/* The RegTest tasks as described at the top of this file. */
-	//xTaskCreate( prvFirstRegTestTask, "Rreg1", configMINIMAL_STACK_SIZE, mainREG_TEST_1_PARAMETER, mainREG_TEST_PRIORITY, NULL);
-	//xTaskCreate( prvSecondRegTestTask, "Rreg2", configMINIMAL_STACK_SIZE, mainREG_TEST_2_PARAMETER, mainREG_TEST_PRIORITY, NULL);
 
 	//create tasks
 	xTaskCreate(Monitor_Frequency, "monfreq", configMINIMAL_STACK_SIZE,NULL,4,4);
@@ -660,6 +571,7 @@ int main(void)
 	xTaskCreate(switchPolling,"switch_poll",configMINIMAL_STACK_SIZE,NULL,1,1);
 	xTaskCreate(Load_Controller,"load_control",configMINIMAL_STACK_SIZE,NULL,3,3);
 	xTaskCreate(UserInputHandler,"userinput",configMINIMAL_STACK_SIZE,NULL,1,NULL);
+
 	//create timers
 	stabilityTimerHandle = xTimerCreate("Stability Timer",pdMS_TO_TICKS(500),pdTRUE,(void *) 0,stableElapse);
 	reactionTimerHandle = xTimerCreate("Reaction Timer",pdMS_TO_TICKS(200),pdFALSE,(void *) 0,reactionElapse);
