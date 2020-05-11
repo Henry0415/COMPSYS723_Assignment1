@@ -249,10 +249,10 @@ void Load_Controller ()
 		xSemaphoreTake(SwitchStatesSem,portMAX_DELAY);
 //		curswstates = SwitchState;
 		curswstates[0] = SwitchState & 0x01;
-		curswstates[1] = SwitchState & 0x02;
-		curswstates[2] = SwitchState & 0x04;
-		curswstates[3] = SwitchState & 0x08;
-		curswstates[4] = SwitchState & 0x10;;
+		curswstates[1] = (SwitchState & 0x02)>>1;
+		curswstates[2] = (SwitchState & 0x04)>>2;
+		curswstates[3] = (SwitchState & 0x08)>>3;
+		curswstates[4] = (SwitchState & 0x10)>>4;
 		xSemaphoreGive(SwitchStatesSem);
 		xQueueReceive(FreqStateQ,&newnetstate,portMAX_DELAY);
 		xSemaphoreTake(MaintenanceStateSem,portMAX_DELAY);
@@ -490,12 +490,6 @@ void Output_Load()
 			greenLEDs = greenLEDs | greenLED2;
 			greenLEDs = greenLEDs | greenLED3;
 			greenLEDs = greenLEDs | greenLED4;
-			redLEDs = redLEDs | redLED0;
-			redLEDs = redLEDs | redLED1;
-			redLEDs = redLEDs | redLED2;
-			redLEDs = redLEDs | redLED3;
-			redLEDs = redLEDs | redLED4;
-
 
 //			IOWR_ALTERA_AVALON_PIO_DATA(GREEN_LEDS_BASE,0x00);
 
